@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/colchain.iml" filepath="$PROJECT_DIR$/colchain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/knowledgechains.iml" filepath="$PROJECT_DIR$/knowledgechains.iml" />
+    </modules>
+  </component>
+</project>

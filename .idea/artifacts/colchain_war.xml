@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="colchain:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="colchain-0.1.war">
+      <element id="artifact" artifact-name="colchain:war exploded" />
+    </root>
+  </artifact>
+</component>
