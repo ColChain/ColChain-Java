@@ -92,5 +92,5 @@ To setup a node for experiments, go to the Web interface by navigating to the co
 * chain lengths, e.g., `100`
 
 ### Running Experiments
-Now that the node is setup, use the Web interface to start the experiments.
+Now that the node is setup, use the Web interface to start the experiments (under the item "Experiments") by filling out the form with the relevant fields for the relevant experiments.
 
