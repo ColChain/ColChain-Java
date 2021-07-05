@@ -1,0 +1,375 @@
+<#include "base.ftl.html">
+<#macro contents>
+<div class="wrapper-box">
+    <div class="statbox-left">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">Communities</font><br/><br/>
+        <canvas id="chart-communities"></canvas>
+    </div>
+    <div class="statbox-left">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">Fragments</font><br/><br/>
+        <canvas id="chart-fragments"></canvas>
+    </div>
+    <div class="statbox-right">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">Details</font><br/><br/>
+        <b>Id:</b> ${id}<br/>
+        <b>Address:</b> ${address}<br/>
+        <b>Datastore:</b> ${datastore}<br/><br/>
+        <b>Largest community:</b> ${largest}<br/>
+        <b>Smallest community:</b> ${smallest}<br/><br/>
+        <b>Most fragments:</b> ${most}<br/>
+        <b>Least fragments:</b> ${least}<br/><br/><br/>
+        <form action="api/save">
+          <input type="text" id="filename" name="filename" placeholder="Filename">
+          <input type="submit" id="submit" value="Save">
+        </form>
+    </div>
+    <div class="editor">
+        <form action="api/sparql" id="queryform">
+            <div class="titlebar">
+                SPARQL
+                <div class="time">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date" <#if hasDate>value="${day}" style="background-color:#8f9c00;"</#if>>
+                </div>
+            </div>
+            <textarea name="query" form="queryform">
+SELECT ?a ?b ?c WHERE {
+    ?a ?b ?c .
+}</textarea>
+            <input type="submit" value="Run Query">
+        </form>
+    </div>
+</div>
+
+<script>
+    <#if ptc&&obs>
+        const dataC = {
+            labels: [
+                'None',
+            ],
+            datasets: [{
+                data: [1],
+            }]
+        };
+
+        const configC = {
+            type: 'doughnut',
+            data: dataC,
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        };
+    <#else>
+        const dataC = {
+            labels: [
+                'Participants',
+                'Observers'
+            ],
+            datasets: [{
+                data: [${participant}, ${observer}],
+                backgroundColor: [
+                    'rgb(189,79,108)',
+                    'rgb(82,167,193)'
+                ],
+                hoverOffset: 4
+            }]
+        };
+
+        const configC = {
+            type: 'doughnut',
+            data: dataC,
+            options: {
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        };
+    </#if>
+
+    <#if strd&&idx>
+        const dataP = {
+            labels: [
+                'None'
+            ],
+            datasets: [{
+                data: [1]
+            }]
+        };
+
+        const configP = {
+            type: 'doughnut',
+            data: dataP,
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        };
+    <#else>
+        const dataP = {
+            labels: [
+                'Stored locally',
+                'Indexed'
+            ],
+            datasets: [{
+                data: [${stored}, ${indexed}],
+                backgroundColor: [
+                    'rgb(189,79,108)',
+                    'rgb(82,167,193)'
+                ],
+                hoverOffset: 4
+            }]
+        };
+
+        const configP = {
+            type: 'doughnut',
+            data: dataP,
+            options: {
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        };
+    </#if>
+
+    var chartCommunities = new Chart(
+        document.getElementById('chart-communities'),
+        configC
+    );
+
+    var chartFragments = new Chart(
+        document.getElementById('chart-fragments'),
+        configP
+    );
+</script>
+
+<script src="${assetsPath}sigma.min.js"></script>
+<script src="${assetsPath}sigma.renderers.edgeLabels.min.js"></script>
+<div class="contbox">
+    <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">Network Structure</font>
+    <font style="font-weight: bold; color: rgb(189,79,108); font-size: x-large">&rarr;</font> Participant <font style="font-weight: bold; color: rgb(82,167,193); font-size: x-large">&rarr;</font> Observer
+    <div id="network-graph"></div>
+</div>
+
+<script>
+    function getRandom(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    var width = document.getElementById("network-graph").clientWidth;
+
+    g = {
+        nodes: [],
+        edges: []
+    };
+
+    g.nodes.push({
+        id: '${local.getId()}',
+        label: 'You',
+        size: 4,
+        x: getRandom(0, width),
+        y: getRandom(0, 500),
+        color: '#666666'
+    });
+
+    <#list nodes as node>
+    g.nodes.push({
+        id: '${node.getId()}',
+        label: '${node.getAddress()}',
+        size: 4,
+        x: getRandom(0, width),
+        y: getRandom(0, 500),
+        color: 'rgb(189,79,108)'
+    });
+    </#list>
+    <#list communities as com>
+    g.nodes.push({
+        id: '${com.getId()}',
+        label: '${com.getName()}',
+        size: 6,
+        x: getRandom(0, width),
+        y: getRandom(0, 500),
+        color: 'rgb(196,202,104)'
+    });
+    </#list>
+    <#list participants as part>
+    g.edges.push({
+        id: '${part.getFirst()}-${part.getSecond()}',
+        source: '${part.getFirst()}',
+        target: '${part.getSecond()}',
+        color: 'rgb(189,79,108)',
+        type: 'arrow'
+    });
+    </#list>
+    <#list observers as part>
+    g.edges.push({
+        id: '${part.getFirst()}-${part.getSecond()}',
+        source: '${part.getFirst()}',
+        target: '${part.getSecond()}',
+        color: 'rgb(82,167,193)',
+        type: 'arrow'
+    });
+    </#list>
+
+    var s = new sigma({
+        graph: g,
+        renderer: {
+            container: document.getElementById('network-graph'),
+            type: 'canvas'
+        },
+        settings: {
+            edgeLabelSize: 'proportional'
+        }
+    });
+</script>
+
+<div class="card-wrapper">
+    <div class="community-card">
+        <div class="card-content">
+            <b>Search</b> for fragment by predicate:<br/><br/>
+            <form action="api/community">
+                <input type="hidden" name="mode" value="predicate">
+                <input type="text" id="address" name="predicate" placeholder="Predicate (URI)">
+                <input type="submit" id="submit" value="Search">
+            </form>
+            <br/><br/><br/>
+            Create a <b>new</b> community:<br/><br/>
+            <form action="api/community">
+                <input type="hidden" id="mode" name="mode" value="create">
+                <input type="text" id="name" name="name" placeholder="Community name">
+                <input type="submit" id="submit" value="Create">
+            </form><br/><br/><br/>
+
+            Or, search for <b>existing</b> communities:<br/><br/>
+            <form action="api/community">
+                <input type="hidden" id="mode" name="mode" value="search">
+                <input type="text" id="address" name="address" placeholder="Address (leave blank to search from neighbors)">
+                <input type="submit" id="submit" value="Search">
+            </form>
+        </div>
+    </div>
+
+    <#list participating as com>
+    <div class="community-card">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">${com.getName()} - Participant</font><br/><br/>
+        <div class="card-chart"><canvas id="chart-${com.getId()}"></canvas></div><br/>
+        <b>Id:</b> ${com.getId()}<br/>
+        <b>Fragments:</b> ${com.getNumFragments()}<br/><br/>
+
+        <form action="api/community" id="leave${com.getId()}" method="get">
+          <input type="hidden" id="mode" name="mode" value="leave">
+          <input type="hidden" id="id" name="id" value="${com.getId()}">
+          <input type="submit" id="leave" value="Leave">
+        </form>
+        <form action="api/community" id="details${com.getId()}" method="get">
+            <input type="hidden" id="mode" name="mode" value="details">
+            <input type="hidden" id="id" name="id" value="${com.getId()}">
+            <input type="submit" id="details" value="Details">
+        </form>
+    </div>
+    </#list>
+
+    <#list observing as com>
+    <div class="community-card">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">${com.getName()} - Observer</font><br/><br/>
+        <div class="card-chart"><canvas id="chart-${com.getId()}"></canvas></div><br/>
+        <b>Id:</b> ${com.getId()}<br/>
+        <b>Fragments:</b> ${com.getNumFragments()}<br/><br/>
+
+        <form action="api/community" id="leave${com.getId()}" method="get">
+            <input type="hidden" id="mode" name="mode" value="leave">
+            <input type="hidden" id="id" name="id" value="${com.getId()}">
+            <input type="submit" style="border-radius:5px;" id="leave" value="Leave">
+        </form>
+    </div>
+    </#list>
+</div>
+
+<script>
+    <#list participating as com>
+    const data${com.getId()} = {
+        labels: [
+            'Participants',
+            'Observers'
+        ],
+        datasets: [{
+            data: [${com.getNumParticipants()}, ${com.getNumObservers()}],
+            backgroundColor: [
+                'rgb(189,79,108)',
+                'rgb(82,167,193)'
+            ],
+            hoverOffset: 4
+        }]
+    };
+
+    const config${com.getId()} = {
+        type: 'doughnut',
+        data: data${com.getId()},
+        options: {
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    };
+
+    var chartFragments = new Chart(
+        document.getElementById('chart-${com.getId()}'),
+        config${com.getId()}
+    );
+    </#list>
+
+    <#list observing as com>
+    const data${com.getId()} = {
+        labels: [
+            'Participants',
+            'Observers'
+        ],
+        datasets: [{
+            data: [${com.getNumParticipants()}, ${com.getNumObservers()}],
+            backgroundColor: [
+                'rgb(189,79,108)',
+                'rgb(82,167,193)'
+            ],
+            hoverOffset: 4
+        }]
+    };
+
+    const config${com.getId()} = {
+        type: 'doughnut',
+        data: data${com.getId()},
+    options: {
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+    };
+
+    var chartFragments = new Chart(
+        document.getElementById('chart-${com.getId()}'),
+        config${com.getId()}
+    );
+    </#list>
+</script>
+</#macro>
+
+<@display_page/>

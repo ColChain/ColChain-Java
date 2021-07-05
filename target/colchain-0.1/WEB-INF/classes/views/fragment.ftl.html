@@ -1,0 +1,73 @@
+<#include "base.ftl.html">
+<#macro contents>
+<div class="card-wrapper">
+    <div class="community-card">
+        <div class="card-content">
+            <br/><br/><br/><br/><br/><br/>
+            <form action="update" method="get">
+                <input type="hidden" name="mode" value="create">
+                <input type="hidden" name="id" value="${fragmentId}">
+                <input type="submit" class="plus-btn" value="+">
+            </form>
+        </div>
+    </div>
+
+    <#list chain as e>
+    <div class="community-card">
+        <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">${e.getId()}</font><br/><br/>
+        <div class="card-chart"><canvas id="chart-${e.getId()}"></canvas></div><br/>
+        <b>Date:</b> ${e.getDate()}<br/>
+        <b>Author:</b> ${e.getAuthor()}<br/><br/>
+
+        <form action="${address}" method="get">
+            <input type="hidden" name="date" value="${e.getDate()}">
+            <input type="submit" id="query" value="Query">
+        </form>
+        <form action="fragment" method="get">
+            <input type="hidden" name="mode" value="operations">
+            <input type="hidden" name="id" value="${e.getId()}">
+            <input type="hidden" name="fragment" value="${fragmentId}">
+            <input type="submit" id="details" value="View">
+        </form>
+    </div>
+    </#list>
+</div>
+
+<script>
+    <#list chain as e>
+    const data${e.getId()} = {
+        labels: [
+            'Additions',
+            'Deletions'
+        ],
+        datasets: [{
+            data: [${e.getAdditions()}, ${e.getDeletions()}],
+            backgroundColor: [
+                'rgb(196,202,104)',
+                'rgb(189,79,108)'
+            ],
+            hoverOffset: 4
+        }]
+    };
+
+    const config${e.getId()} = {
+        type: 'doughnut',
+        data: data${e.getId()},
+        options: {
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    };
+
+    var chartFragments = new Chart(
+        document.getElementById('chart-${e.getId()}'),
+        config${e.getId()}
+    );
+    </#list>
+</script>
+</#macro>
+
+<@display_page/>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_ID" version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+    <display-name>Knowledge Chains Client</display-name>
+    <servlet>
+        <servlet-name>WebInterfaceServlet</servlet-name>
+        <servlet-class>org.colchain.colchain.servlet.WebInterfaceServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>NodeApiServlet</servlet-name>
+        <servlet-class>org.colchain.colchain.servlet.NodeApiServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>LdfServlet</servlet-name>
+        <servlet-class>org.linkeddatafragments.servlet.LinkedDataFragmentServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ExperimentsServlet</servlet-name>
+        <servlet-class>org.colchain.colchain.servlet.ExperimentsServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>/assets/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>NodeApiServlet</servlet-name>
+        <url-pattern>/api/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>LdfServlet</servlet-name>
+        <url-pattern>/ldf/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>WebInterfaceServlet</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ExperimentsServlet</servlet-name>
+        <url-pattern>/experiments/*</url-pattern>
+    </servlet-mapping>
+</web-app>
