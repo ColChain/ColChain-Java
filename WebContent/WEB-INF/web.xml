@@ -17,6 +17,12 @@
         <servlet-name>ExperimentsServlet</servlet-name>
         <servlet-class>org.colchain.colchain.servlet.ExperimentsServlet</servlet-class>
     </servlet>
+
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>/assets/*</url-pattern>
+    </servlet-mapping>
+
     <servlet-mapping>
         <servlet-name>NodeApiServlet</servlet-name>
         <url-pattern>/api/*</url-pattern>

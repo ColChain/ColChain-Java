@@ -95,6 +95,7 @@ public class ExperimentsServlet extends HttpServlet {
         else if (mode.equals("performance")) handlePerformance(request, response);
         else if (mode.equals("versioning")) handleVersioning(request, response);
         else if (mode.equals("updates")) handleUpdates(request, response);
+        else if (mode.equals("dbpedia")) handleDbpedia(request, response);
 
         try {
             writer.writeRedirect(response.getOutputStream(), request, "experiments");
@@ -301,11 +302,11 @@ public class ExperimentsServlet extends HttpServlet {
             String cid = fDir.getName();
             int owner = -1;
             int num;
-            if(reps == 0)
-                num = (int) Math.ceil(128.0/(double)j);
+            if (reps == 0)
+                num = (int) Math.ceil(128.0 / (double) j);
             else
-                    num = reps;
-            if(num == 0) num = 1;
+                num = reps;
+            if (num == 0) num = 1;
             Set<Integer> set = new HashSet<>();
             while (set.size() < num) {
                 int next = rand.nextInt(nodes);
@@ -418,7 +419,7 @@ public class ExperimentsServlet extends HttpServlet {
         int nodes = Integer.parseInt(request.getParameter("nodes"));
         int chain;
         String ch = request.getParameter("chain");
-        if(ch == null || ch.equals(""))
+        if (ch == null || ch.equals(""))
             chain = 0;
         else
             chain = Integer.parseInt(request.getParameter("chain"));
@@ -492,7 +493,7 @@ public class ExperimentsServlet extends HttpServlet {
                 String path = fFile.replace("/fragments", "/" + ws[1] + ".hdt");
 
                 if (participant) {
-                    if(chain > 0) {
+                    if (chain > 0) {
                         String filename = setup + "updates/" + ws[1] + "/" + chain;
                         String j = FileUtils.readFileToString(new File(filename), StandardCharsets.UTF_8);
 
@@ -503,6 +504,104 @@ public class ExperimentsServlet extends HttpServlet {
                     } else {
                         AbstractNode.getState().addNewFragment(ws[1], ws[0], path, s, oKey);
                     }
+                } else {
+                    AbstractNode.getState().addNewObservedFragment(ws[1], ws[0], s, oKey);
+                }
+
+                line = reader.readLine();
+            }
+            reader.close();
+        }
+    }
+
+    private void handleDbpedia(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String config = request.getParameter("config");
+        initConfig(config);
+        WebInterfaceServlet.INIT = true;
+        String setup = request.getParameter("setup");
+        String dirname = request.getParameter("dir");
+        int node = Integer.parseInt(request.getParameter("id"));
+        int nodes = Integer.parseInt(request.getParameter("nodes"));
+        //AbstractNode.getState().setAddress("http://172.21.232.208:3" + String.format("%03d", node));
+        //AbstractNode.getState().setAddress("http://localhost:8080/colchain-0.1");
+        setup = setup + (setup.endsWith("/") ? "" : "/");
+
+        if (node < nodes) {
+            PrivateKey pKey = CryptoUtils.getPrivateKey(FileUtils.readFileToByteArray(new File(setup + "keys/private/" + node)));
+            PublicKey puKey = CryptoUtils.getPublicKey(FileUtils.readFileToByteArray(new File(setup + "keys/public/" + node)));
+            KeyPair keys = new KeyPair(puKey, pKey);
+            AbstractNode.getState().setKeyPair(keys);
+        }
+
+        String file = setup + "distribution";
+        String json = readFile(file);
+        Gson gson = new Gson();
+        Type type = new TypeToken<Map<String, Tuple<Integer, Set<Integer>>>>() {
+        }.getType();
+        Map<String, Tuple<Integer, Set<Integer>>> map = gson.fromJson(json, type);
+
+        json = readFile(setup + "ids");
+        type = new TypeToken<List<String>>() {
+        }.getType();
+        List<String> ids = gson.fromJson(json, type);
+        try {
+            AbstractNode.getState().setId(ids.get(node));
+        } catch (IndexOutOfBoundsException e) {
+
+        }
+
+        int cnum = 1;
+
+        for (String s : map.keySet()) {
+            Tuple<Integer, Set<Integer>> tpl = map.get(s);
+            Set<Integer> set = tpl.getSecond();
+            int owner = tpl.getFirst();
+            byte[] oKey = FileUtils.readFileToByteArray(new File(setup + "keys/public/" + owner));
+
+            Set<CommunityMember> participants = new HashSet<>();
+            Set<CommunityMember> observers = new HashSet<>();
+            for (int i = 0; i < nodes; i++) {
+                if (set.contains(i)) {
+                    //participants.add(new CommunityMember(ids.get(i), "http://172.21.232.208:3" + String.format("%03d", i)));
+                    participants.add(new CommunityMember(ids.get(i), "http://172.21.232.208:808" + i + "/kc"));
+                } else {
+                    //observers.add(new CommunityMember(ids.get(i), "http://172.21.232.208:3" + String.format("%03d", i)));
+                    observers.add(new CommunityMember(ids.get(i), "http://172.21.232.208:808" + i + "/kc"));
+                }
+            }
+            boolean participant;
+            Community.MemberType mt;
+            if (set.contains(node)) {
+                participant = true;
+                mt = Community.MemberType.PARTICIPANT;
+            } else {
+                participant = false;
+                mt = Community.MemberType.OBSERVER;
+            }
+
+            Community c = new Community(s, "Community " + cnum, mt, participants, observers);
+            cnum++;
+            AbstractNode.getState().addCommunity(c);
+
+            String fFile = dirname + (dirname.endsWith("/") ? "" : "/") + s + "/fragments";
+            BufferedReader reader = new BufferedReader(new FileReader(fFile));
+            String line = reader.readLine();
+            while (line != null) {
+                if (line.equals("")) {
+                    line = reader.readLine();
+                    continue;
+                }
+                String[] ws = line.split(";");
+                String path = fFile.replace("/fragments", "/" + ws[1] + ".hdt");
+
+                if (participant) {
+                    String filename = setup + "updates/" + ws[1];
+                    String j = FileUtils.readFileToString(new File(filename), StandardCharsets.UTF_8);
+
+                    Gson g = new GsonBuilder().registerTypeAdapter(ChainEntry.class, new ChainSerializer()).create();
+                    ChainEntry entry = g.fromJson(j, ChainEntry.class);
+
+                    AbstractNode.getState().addNewFragment(ws[1], ws[0], path, s, oKey, entry);
                 } else {
                     AbstractNode.getState().addNewObservedFragment(ws[1], ws[0], s, oKey);
                 }

@@ -4,6 +4,7 @@ import org.colchain.colchain.transaction.ITransaction;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 /**
@@ -63,7 +64,7 @@ public class CryptoUtils {
 
     public static PrivateKey getPrivateKey(byte[] bytes) {
         try {
-            return KeyFactory.getInstance("RSA").generatePrivate(new X509EncodedKeySpec(bytes));
+            return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(bytes));
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             return null;
         }

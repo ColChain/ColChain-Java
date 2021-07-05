@@ -1,7 +1,11 @@
 package org.colchain.colchain.servlet;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import org.colchain.colchain.knowledgechain.impl.ChainEntry;
+import org.colchain.colchain.util.ChainSerializer;
+import org.colchain.colchain.util.TransactionSerializer;
 import org.colchain.index.graph.IGraph;
 import org.colchain.index.graph.impl.Graph;
 import org.colchain.index.index.IIndex;
@@ -45,6 +49,7 @@ import java.io.IOException;
 
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -114,8 +119,22 @@ public class NodeApiServlet extends HttpServlet {
             case "save":
                 handleSave(request, response);
                 break;
+            case "fragment":
+                handleFragment(request, response);
+                break;
+            case "date":
+                handleDate(request, response);
+                break;
             default:
                 response.getWriter().println("Unknown request.");
+        }
+    }
+
+    private void handleDate(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            writer.writeLandingPage(response.getOutputStream(), request);
+        } catch (Exception e) {
+            throw new ServletException(e);
         }
     }
 
@@ -132,6 +151,31 @@ public class NodeApiServlet extends HttpServlet {
         }
     }
 
+    private void handleFragment(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String mode = request.getParameter("mode");
+        if(mode.equals("details")) {
+            try {
+                writer.writeFragmentDetails(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            return;
+        } else if(mode.equals("operations")) {
+            try {
+                writer.writeTransactionDetails(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            return;
+        }
+
+        try {
+            writer.writeRedirect(response.getOutputStream(), request, "/api/fragment");
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
+
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String mode = request.getParameter("mode");
         if(mode.equals("create")) {
@@ -143,7 +187,7 @@ public class NodeApiServlet extends HttpServlet {
             return;
         } else if(mode.equals("suggest")) {
             String id = request.getParameter("id");
-            String content = request.getParameter("content");
+            String content = URLDecoder.decode(request.getParameter("content"), "UTF-8");
             ITransaction t = TransactionFactory.getTransaction(getOperations(content), id, AbstractNode.getState().getId());
             byte[] signature = CryptoUtils.createSignature(AbstractNode.getState().getPrivateKey(), t);
             AbstractNode.getState().suggestTransaction(t, signature);
@@ -264,6 +308,19 @@ public class NodeApiServlet extends HttpServlet {
             Gson gson = new Gson();
             IGraph graph = AbstractNode.getState().getIndex().getGraph(filename);
             response.getOutputStream().println(gson.toJson(graph));
+        } else if (type.equals("updates")) {
+            Gson gson = new GsonBuilder().registerTypeAdapter(ITransaction.class, new TransactionSerializer()).create();
+
+            Map<String, Tuple<ITransaction, Set<String>>> map = new HashMap<>();
+            Map<String, Tuple<ITransaction, Set<String>>> updates = AbstractNode.getState().getTransactions();
+            List<ITransaction> pending = AbstractNode.getState().getPendingUpdates();
+            for(ITransaction t : pending) {
+                if(t.getFragmentId().equals(filename)) {
+                    map.put(t.getId(), updates.get(t.getId()));
+                }
+            }
+
+            response.getOutputStream().println(gson.toJson(map));
         } else {
             response.getWriter().println("Error");
         }
@@ -419,6 +476,20 @@ public class NodeApiServlet extends HttpServlet {
             }
             downloadIndex(address, id);
             return;
+        } else if(mode.equals("details")) {
+            try {
+                writer.writeCommunityDetails(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            return;
+        } else if (mode.equals("predicate")) {
+            try {
+                writer.writeFragmentSearch(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            return;
         }
 
         try {
@@ -486,8 +557,8 @@ public class NodeApiServlet extends HttpServlet {
             return;
         }
 
-        filename = filename + ".index";
-        url = url + ".index";
+        filename = filename + ".index.v1-1";
+        url = url + ".index.v1-1";
         try {
             content = Request.Get(url).execute().returnContent();
             InputStream stream = content.asStream();
@@ -503,13 +574,27 @@ public class NodeApiServlet extends HttpServlet {
             String json = content.asString();
             Type type = new TypeToken<KnowledgeChain>() {
             }.getType();
-            Gson gson = new Gson();
+            Gson gson = new GsonBuilder().registerTypeAdapter(ChainEntry.class, new ChainSerializer()).create();
 
             KnowledgeChain chain = gson.fromJson(json, type);
             IDataSource ds = DataSourceFactory.createLocal(id, AbstractNode.getState().getDatastore() + "hdt/" + id + ".hdt");
             chain.setDatasource(ds);
 
             AbstractNode.getState().addChain(id, chain);
+        } catch (IOException e) {
+            return;
+        }
+
+        url = address + "api/download?type=updates&file=" + id;
+        try {
+            content = Request.Get(url).execute().returnContent();
+            String json = content.asString();
+            Type type = new TypeToken<Map<String, Tuple<ITransaction, Set<String>>>>() {
+            }.getType();
+            Gson gson = new GsonBuilder().registerTypeAdapter(ITransaction.class, new TransactionSerializer()).create();
+
+            Map<String, Tuple<ITransaction, Set<String>>> map = gson.fromJson(json, type);
+            AbstractNode.getState().addPending(map);
         } catch (IOException e) {
             return;
         }

@@ -17,4 +17,5 @@ public interface IIndex {
     boolean hasFragment(String fid);
     void updateIndex(String fragmentId, IBloomFilter<String> filter);
     String getPredicate(String id);
+    List<String> getByPredicate(String predicate);
 }

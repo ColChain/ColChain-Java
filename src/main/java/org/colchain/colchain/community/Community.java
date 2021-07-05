@@ -116,6 +116,23 @@ public class Community {
         return observers;
     }
 
+    public int getNumFragments() {
+        return fragmentIds.size();
+    }
+
+    public int getNumParticipants() {
+        return participants.size();
+    }
+
+    public int getNumObservers() {
+        return observers.size();
+    }
+
+    public String getParticipationTypeString() {
+        if(memberType == MemberType.PARTICIPANT) return "Participant";
+        return "Observer";
+    }
+
     public boolean isIn(String fid) {
         return fragmentIds.contains(fid);
     }

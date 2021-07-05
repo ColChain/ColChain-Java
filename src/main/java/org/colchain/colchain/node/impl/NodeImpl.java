@@ -88,6 +88,11 @@ public class NodeImpl extends AbstractNode implements INode {
     }
 
     @Override
+    public void addPending(Map<String, Tuple<ITransaction, Set<String>>> pending) {
+        transactions.putAll(pending);
+    }
+
+    @Override
     public void suggestTransaction(ITransaction t, byte[] signature) {
         Set<String> acc = new HashSet<>();
         transactions.put(t.getId(), new Tuple<>(t,acc));
@@ -97,8 +102,15 @@ public class NodeImpl extends AbstractNode implements INode {
         PublicKey key = chains.get(t.getFragmentId()).getKey();
         if(key == null) return;
         if(CryptoUtils.matches(key, t, signature)) {
-            accept(t);
+            acceptLocally(t);
         }
+    }
+
+    private void acceptLocally(ITransaction transaction) {
+        String fid = transaction.getFragmentId();
+
+        chains.get(fid).transition(transaction);
+        transactions.remove(transaction.getId());
     }
 
     @Override

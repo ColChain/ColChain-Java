@@ -51,6 +51,26 @@ public class JenaTDBDataSource extends DataSourceBase {
     }
 
     @Override
+    public int numTriples() {
+        return 0;
+    }
+
+    @Override
+    public int numSubjects() {
+        return 0;
+    }
+
+    @Override
+    public int numPredicates() {
+        return 0;
+    }
+
+    @Override
+    public int numObjects() {
+        return 0;
+    }
+
+    @Override
     public void copy() {
 
     }

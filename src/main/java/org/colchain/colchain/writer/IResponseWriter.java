@@ -31,4 +31,12 @@ public interface IResponseWriter {
     void writeSuggestUpdate(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
 
     void writeSuggestedUpdate(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
+
+    void writeCommunityDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
+
+    void writeFragmentDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
+
+    void writeTransactionDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
+
+    void writeFragmentSearch(ServletOutputStream outputStream, HttpServletRequest request) throws Exception;
 }

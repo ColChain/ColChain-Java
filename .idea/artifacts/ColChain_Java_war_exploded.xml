@@ -1,10 +1,10 @@
 <component name="ArtifactManager">
-  <artifact type="exploded-war" name="colchain:war exploded">
+  <artifact type="exploded-war" name="ColChain-Java:war exploded">
     <output-path>$PROJECT_DIR$/target/colchain-0.1</output-path>
     <root id="root">
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">
-          <element id="module-output" name="colchain" />
+          <element id="module-output" name="ColChain-Java" />
         </element>
         <element id="directory" name="lib">
           <element id="library" level="project" name="Maven: org.apache.jena:jena-core:3.13.1" />
@@ -53,7 +53,7 @@
       <element id="directory" name="META-INF">
         <element id="file-copy" path="$PROJECT_DIR$/target/colchain-0.1/META-INF/MANIFEST.MF" />
       </element>
-      <element id="javaee-facet-resources" facet="colchain/web/Web" />
+      <element id="javaee-facet-resources" facet="ColChain-Java/web/Web" />
     </root>
   </artifact>
 </component>

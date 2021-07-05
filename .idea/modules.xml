@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/ColChain-Java.iml" filepath="$PROJECT_DIR$/.idea/ColChain-Java.iml" />
       <module fileurl="file://$PROJECT_DIR$/colchain.iml" filepath="$PROJECT_DIR$/colchain.iml" />
       <module fileurl="file://$PROJECT_DIR$/knowledgechains.iml" filepath="$PROJECT_DIR$/knowledgechains.iml" />
     </modules>

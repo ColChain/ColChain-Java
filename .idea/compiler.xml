@@ -7,11 +7,13 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="colchain" />
+        <module name="ColChain-Java" />
         <module name="knowledgechains" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="colchain" target="1.8" />
+      <module name="ColChain-Java" target="1.8" />
       <module name="knowledgechains" target="1.8" />
     </bytecodeTargetLevel>
   </component>

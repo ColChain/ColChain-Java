@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="war" name="knowledgechains:war">
-    <output-path>$PROJECT_DIR$/target</output-path>
-    <root id="archive" name="knowledgechains-0.1.war">
-      <element id="artifact" artifact-name="knowledgechains:war exploded" />
-    </root>
-  </artifact>
-</component>

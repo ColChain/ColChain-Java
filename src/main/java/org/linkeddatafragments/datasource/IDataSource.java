@@ -54,6 +54,14 @@ public interface IDataSource extends Closeable {
 
     IDataSource materializeVersion(Set<Triple> additions, Set<Triple> deletions, long timestamp);
 
+    int numTriples();
+
+    int numSubjects();
+
+    int numPredicates();
+
+    int numObjects();
+
     public enum ProcessorType {
         TPF, BRTPF, SPF
     }

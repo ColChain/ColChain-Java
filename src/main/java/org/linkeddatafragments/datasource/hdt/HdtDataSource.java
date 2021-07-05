@@ -109,6 +109,26 @@ public class HdtDataSource extends DataSourceBase {
     }
 
     @Override
+    public int numTriples() {
+        return (int) datasource.getTriples().getNumberOfElements();
+    }
+
+    @Override
+    public int numSubjects() {
+        return datasource.getDictionary().getSubjects().getNumberOfElements();
+    }
+
+    @Override
+    public int numPredicates() {
+        return datasource.getDictionary().getPredicates().getNumberOfElements();
+    }
+
+    @Override
+    public int numObjects() {
+        return datasource.getDictionary().getObjects().getNumberOfElements();
+    }
+
+    @Override
     public IFragmentRequestProcessor getRequestProcessor(IDataSource.ProcessorType processor) {
         if (processor == ProcessorType.TPF)
             return new HdtBasedRequestProcessorForTPFs(datasource, dictionary);

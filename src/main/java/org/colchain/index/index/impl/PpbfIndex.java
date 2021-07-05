@@ -37,6 +37,18 @@ public class PpbfIndex extends IndexBase {
     }
 
     @Override
+    public List<String> getByPredicate(String predicate) {
+        List<String> ids = new ArrayList<>();
+
+        for(IGraph g : fragments) {
+            if(g.getBaseUri().equals(predicate))
+                ids.add(g.getId());
+        }
+
+        return ids;
+    }
+
+    @Override
     public Set<IGraph> getGraphs() {
         return fragments;
     }
@@ -166,7 +178,11 @@ public class PpbfIndex extends IndexBase {
 
                 for (IGraph f1 : f1s) {
                     for (IGraph f2 : f2s) {
-                        if (f1.equals(f2)) continue;
+                        if (f1.equals(f2)) {
+                            good1.add(f1);
+                            good2.add(f2);
+                            continue;
+                        }
                         Tuple<IGraph, IGraph> tuple = new Tuple<>(f1, f2);
                         if (!blooms.containsKey(tuple)) tuple = new Tuple<>(f2, f1);
                         if (blooms.containsKey(tuple)) {

@@ -1,7 +1,16 @@
 package org.colchain.colchain.writer;
 
 import com.google.gson.Gson;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateExceptionHandler;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.colchain.colchain.community.CommunityMember;
+import org.colchain.colchain.knowledgechain.impl.ChainEntry;
+import org.colchain.colchain.knowledgechain.impl.KnowledgeChain;
+import org.colchain.colchain.transaction.Operation;
 import org.colchain.index.graph.IGraph;
+import org.colchain.index.util.Triple;
 import org.colchain.index.util.Tuple;
 import org.colchain.colchain.community.Community;
 import org.colchain.colchain.node.AbstractNode;
@@ -10,16 +19,62 @@ import org.colchain.colchain.transaction.ITransaction;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.linkeddatafragments.datasource.IDataSource;
+import org.rdfhdt.hdt.hdt.HDT;
+import org.rdfhdt.hdt.triples.IteratorTripleString;
+import org.rdfhdt.hdt.triples.TripleString;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ResponseWriteHtml implements IResponseWriter {
+    private final Configuration cfg;
+    private boolean error = false;
+
+    private Template indexTemplate;
+    private Template queryTemplate;
+    private Template setupTemplate;
+    private Template searchTemplate;
+    private Template communityTemplate;
+    private Template modifyTemplate;
+    private Template updateTemplate;
+    private Template fragmentTemplate;
+    private Template transactionTemplate;
+    private Template predicateTemplate;
+
+    public ResponseWriteHtml() {
+        cfg = new Configuration(Configuration.VERSION_2_3_22);
+        cfg.setClassForTemplateLoading(getClass(), "/views");
+        cfg.setDefaultEncoding("UTF-8");
+        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+
+        try {
+            indexTemplate = cfg.getTemplate("index.ftl.html");
+            queryTemplate = cfg.getTemplate("query.ftl.html");
+            setupTemplate = cfg.getTemplate("setup.ftl.html");
+            searchTemplate = cfg.getTemplate("search.ftl.html");
+            communityTemplate = cfg.getTemplate("community.ftl.html");
+            modifyTemplate = cfg.getTemplate("modify.ftl.html");
+            updateTemplate = cfg.getTemplate("update.ftl.html");
+            fragmentTemplate = cfg.getTemplate("fragment.ftl.html");
+            transactionTemplate = cfg.getTemplate("transaction.ftl.html");
+            predicateTemplate = cfg.getTemplate("predicate.ftl.html");
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            error = true;
+        }
+    }
+
     @Override
     public void writeNotInitiated(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        if (error) {
+            outputStream.println("There was an error. Please restart the client.");
+            return;
+        }
         String uri = request.getRequestURI();
         if (uri.contains("ldf"))
             uri = uri.replace(uri.substring(uri.indexOf("ldf/")), "");
@@ -41,194 +96,119 @@ public class ResponseWriteHtml implements IResponseWriter {
 
     @Override
     public void writeLandingPage(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        if (error) {
+            outputStream.println("There was an error. Please restart the client.");
+            return;
+        }
         String uri = request.getRequestURI();
         if (!uri.endsWith("/"))
             uri += "/";
 
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n";
+        Map data = new HashMap();
 
-        line += "  <form action=\"api/save\">\n" +
-                "    <input type=\"text\" id=\"filename\" name=\"filename\"> \n" +
-                "    <input type=\"submit\" value=\"Save state\">\n" +
-                "  </form>\n";
+        data.put("assetsPath", "assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("page", "Home");
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
 
-        line += "  <h1>Experiments</h1>\n" +
-                "  <form action=\"experiments\">\n" +
-                "    Performance Experiments:\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"performance\"> \n" +
-                "    <label for=\"queries\">Query Directory:</label> \n" +
-                "    <input type=\"text\" id=\"queries\" name=\"queries\"> \n" +
-                "    <label for=\"out\">Output Directory:</label> \n" +
-                "    <input type=\"text\" id=\"out\" name=\"out\"> \n" +
-                "    <label for=\"reps\">Replications:</label> \n" +
-                "    <input type=\"number\" id=\"reps\" name=\"reps\"> \n" +
-                "    <input type=\"submit\" value=\"Run\">\n" +
-                "  </form>\n" +
-                "  <form action=\"experiments\">\n" +
-                "    Versioning Experiments:\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"versioning\"> \n" +
-                "    <label for=\"queries\">Query Directory:</label> \n" +
-                "    <input type=\"text\" id=\"queries\" name=\"queries\"> \n" +
-                "    <label for=\"out\">Output Directory:</label> \n" +
-                "    <input type=\"text\" id=\"out\" name=\"out\"> \n" +
-                "    <label for=\"reps\">Chain length:</label> \n" +
-                "    <input type=\"number\" id=\"length\" name=\"length\"> \n" +
-                "    <input type=\"submit\" value=\"Run\">\n" +
-                "  </form>\n" +
-                "  <form action=\"experiments\">\n" +
-                "    Updates Experiments:\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"updates\"> \n" +
-                "    <label for=\"queries\">Update Directory:</label> \n" +
-                "    <input type=\"text\" id=\"updates\" name=\"updates\"> \n" +
-                "    <label for=\"out\">Output Directory:</label> \n" +
-                "    <input type=\"text\" id=\"out\" name=\"out\"> \n" +
-                "    <label for=\"reps\">Chain length:</label> \n" +
-                "    <input type=\"number\" id=\"length\" name=\"length\"> \n" +
-                "    <input type=\"submit\" value=\"Run\">\n" +
-                "  </form>\n";
+        int participant = 0, observer = 0, largest = 0, smallest = 0, most = 0, least = 0;
+        List<Community> communities = AbstractNode.getState().getCommunities();
+        List<Community> participating = new ArrayList<>();
+        List<Community> observing = new ArrayList<>();
 
-        line += "  <h1>SPARQL Query</h1>\n" +
-                "  <form action=\"api/sparql\" id=\"queryform\">\n" +
-                "    <textarea name=\"query\" form=\"queryform\" cols=\"100\" rows=\"10\"></textarea><br/>\n" +
-                "    <label for=\"time\">Timestamp:</label> \n" +
-                "    <input type=\"number\" id=\"time\" name=\"time\"> \n" +
-                "    <input type=\"submit\" value=\"Issue Query\">\n" +
-                "  </form>\n";
+        List<CommunityMember> nodes = new ArrayList<>();
+        Set<String> added = new HashSet<>();
+        CommunityMember cm = new CommunityMember(AbstractNode.getState().getId(), AbstractNode.getState().getAddress());
+        added.add(AbstractNode.getState().getId());
+        List<Tuple<String, String>> partNodes = new ArrayList<>();
+        List<Tuple<String, String>> obsNodes = new ArrayList<>();
 
-        line += "  <h1>Communities</h1>\n" +
-                "  Current communities:\n" +
-                "  <ul>\n";
+        for (Community c : communities) {
+            if (c.getMemberType() == Community.MemberType.PARTICIPANT) {
+                participant++;
+                participating.add(c);
+            }
+            else if (c.getMemberType() == Community.MemberType.OBSERVER) {
+                observer++;
+                observing.add(c);
+            }
 
-        List<Community> comms = AbstractNode.getState().getCommunities();
-        for (Community c : comms) {
-            line += "    <li>" + c.getName() + ": " + c.getMemberType().toString() + " (id: " + c.getId() + ", fragments: "
-                    + c.getFragmentIds().size() + ", participants: "
-                    + c.getParticipants().size() + ", observers: "
-                    + c.getObservers().size() + ")\n" +
-                    "  <form action=\"" + uri + "api/community\" method=\"get\">\n" +
-                    "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"leave\">" +
-                    "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + c.getId() + "\"> \n" +
-                    "    <input type=\"submit\" value=\"Leave\">\n" +
-                    "  </form>\n" +
-                    "</li>\n";
-        }
+            int cnt = c.getParticipants().size();
+            if (smallest == 0 || cnt < smallest) smallest = cnt;
+            if (cnt > largest) largest = cnt;
 
-        line += "  </ul>\n" +
-                "  <form action=\"" + uri + "api/community\" method=\"get\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"create\">" +
-                "    <label for=\"name\">Community name:</label> \n" +
-                "    <input type=\"text\" id=\"name\" name=\"name\"> \n" +
-                "    <input type=\"submit\" value=\"Create\">\n" +
-                "  </form>\n" +
-                "  <form action=\"" + uri + "api/community\" method=\"get\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"search\">" +
-                "    <label for=\"name\">Address (leave blank to search from neighbors):</label> \n" +
-                "    <input type=\"text\" id=\"address\" name=\"address\"> \n" +
-                "    <input type=\"submit\" value=\"Search for new Community\">\n" +
-                "  </form>\n";
+            cnt = c.getFragmentIds().size();
+            if (least == 0 || cnt < least) least = cnt;
+            if (cnt > most) most = cnt;
 
-        line += "  <h1>Updates</h1>\n" +
-                "  Pending updates:\n";
-
-        List<ITransaction> ts = AbstractNode.getState().getPendingUpdates();
-        if (ts.size() > 0) {
-            line += "  <ul>\n";
-        }
-
-        for (ITransaction t : ts) {
-            line += "<li>\n" +
-                    t.getId() + " (FRAGMENT: " + t.getFragmentId() + ", AUTHOR: " + t.getAuthor() + ")" +
-                    "  <form action=\"" + uri + "api/update\" method=\"get\">\n" +
-                    "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"view\">" +
-                    "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + t.getId() + "\">" +
-                    "    <input type=\"submit\" value=\"View\">\n" +
-                    "  </form>\n" +
-                    "</li>\n";
-        }
-
-        if (ts.size() > 0) {
-            line += "  </ul>\n";
-        }
-
-
-        line += "  <h1>Fragments</h1>\n" +
-                "  Currently available fragments:\n";
-
-        if (comms.size() > 0) {
-            line += "  <ul>\n";
-        }
-
-        Set<String> fragments = AbstractNode.getState().getDatasourceIds();
-        uri += "ldf/";
-        for (String s : fragments) {
-            Community c = null;
-            for (Community com : comms) {
-                if (com.isIn(s)) {
-                    c = com;
-                    break;
+            for(CommunityMember mem : c.getParticipants()) {
+                if(!added.contains(mem.getId())) {
+                    added.add(mem.getId());
+                    nodes.add(mem);
                 }
+                partNodes.add(new Tuple<>(mem.getId(), c.getId()));
             }
 
-            line += "    <li><a href=\"" + uri + s + "\">" + s + "</a> (Community: " + ((c == null) ? "" : c.getName()) + ")" +
-                    "  <form action=\"" + uri.replace("ldf/", "api/update") + "\" method=\"get\">\n" +
-                    "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"create\">" +
-                    "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + s + "\">" +
-                    "    <input type=\"submit\" value=\"Suggest update\">\n" +
-                    "  </form>\n" +
-                    "    </li>\n";
-        }
-
-        if (comms.size() > 0) {
-
-            line += "  </ul> " +
-                    "  <form action=\"" + uri.replace("ldf/", "api/upload") + "\" method=\"get\"> " +
-                    "    <label for=\"path\">HDT file path:</label> \n" +
-                    "    <input type=\"text\" id=\"path\" name=\"path\"> \n" +
-                    "    <label for=\"community\">Select community:</label> \n" +
-                    "    <select id=\"community\" name=\"community\">\n";
-
-            for (Community c : comms) {
-                if (c.getMemberType() == Community.MemberType.PARTICIPANT)
-                    line += "      <option value=\"" + c.getId() + "\">" + c.getName() + "</option>\n";
-            }
-
-            line += "    </select>\n" +
-                    "    <input type=\"submit\" value=\"Upload\">\n" +
-                    "  </form><br>\n";
-        }
-
-        line += "  <h1>Index</h1>\n" +
-                "  Current fragments in the index:\n" +
-                "  <ul>\n";
-
-        Set<IGraph> graphs = AbstractNode.getState().getIndex().getGraphs();
-        for (IGraph g : graphs) {
-            String id = g.getId();
-            String community = g.getCommunity();
-
-            Community c = null;
-            for (Community com : comms) {
-                if (com.getId().equals(community)) {
-                    c = com;
-                    break;
+            for(CommunityMember mem : c.getObservers()) {
+                if(!added.contains(mem.getId())) {
+                    added.add(mem.getId());
+                    nodes.add(mem);
                 }
+                obsNodes.add(new Tuple<>(mem.getId(), c.getId()));
             }
-
-            line += "    <li>" + id + " (Community: " + ((c == null) ? "" : c.getName()) + ")</li>\n";
         }
 
-        line += "  </ul> \n";
-        line += "</body>\n" +
-                "</html>";
+        int stored = AbstractNode.getState().getChains().size();
+        int indexed = AbstractNode.getState().getIndex().getGraphs().size() - stored;
 
+        data.put("participant", participant);
+        data.put("observer", observer);
 
-        outputStream.println(line);
+        boolean ptc = false;
+        boolean obs = false;
+        if(participant == 0) ptc = true;
+        if(observer == 0) obs = true;
+        data.put("ptc", ptc);
+        data.put("obs", obs);
+
+        data.put("stored", stored);
+        data.put("indexed", Integer.toString(indexed));
+
+        boolean strd = false;
+        boolean idx = false;
+        if(stored == 0) strd = true;
+        if(indexed == 0) idx = true;
+        data.put("strd", strd);
+        data.put("idx", idx);
+
+        data.put("id", AbstractNode.getState().getId());
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("datastore", AbstractNode.getState().getDatastore());
+        data.put("largest", largest);
+        data.put("smallest", smallest);
+        data.put("most", most);
+        data.put("least", least);
+        data.put("participating", participating);
+        data.put("observing", observing);
+        data.put("nodes", nodes);
+        data.put("communities", communities);
+        data.put("participants", partNodes);
+        data.put("observers", obsNodes);
+        data.put("local", cm);
+
+        String date = "";
+        boolean hasDate = false;
+        if(request.getParameter("date") != null && !request.getParameter("date").equals("")) {
+            date = request.getParameter("date");
+            hasDate = true;
+        }
+
+        data.put("day", date);
+        data.put("hasDate", hasDate);
+
+        indexTemplate.process(data, new OutputStreamWriter(outputStream));
     }
 
     @Override
@@ -250,134 +230,106 @@ public class ResponseWriteHtml implements IResponseWriter {
     @Override
     public void writeSearch(ServletOutputStream outputStream, HttpServletRequest request, Set<Tuple<String, Tuple<String, String>>> comms) throws Exception {
         String uri = request.getRequestURI().replace("/api/community", "");
-        System.out.println(uri);
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "  <form action=\"" + uri + "\">\n" +
-                "    <input type=\"submit\" value=\"Back\">\n" +
-                "  </form>\n";
 
-        if (comms.size() == 0) {
-            line += "No communities found!\n";
-        } else {
-            line += "  <ul>\n";
-            for (Tuple<String, Tuple<String, String>> tpl : comms) {
-                line += "<li>" + tpl.getSecond().getFirst() + " (ID: " + tpl.getSecond().getSecond() + ")\n" +
-                        "  <form action=\"" + uri + "/api/community\" method=\"get\">\n" +
-                        "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"participate\">" +
-                        "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + tpl.getSecond().getSecond() + "\">" +
-                        "    <input type=\"hidden\" id=\"address\" name=\"address\" value=\"" + tpl.getFirst() + (tpl.getFirst().endsWith("/") ? "" : "/") + "\">" +
-                        "    <input type=\"submit\" value=\"Participate\">\n" +
-                        "  </form>\n" +
-                        "  <form action=\"" + uri + "/api/community\" method=\"get\">\n" +
-                        "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"observe\">" +
-                        "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + tpl.getSecond().getSecond() + "\">" +
-                        "    <input type=\"hidden\" id=\"address\" name=\"address\" value=\"" + tpl.getFirst() + (tpl.getFirst().endsWith("/") ? "" : "/") + "\">" +
-                        "    <input type=\"submit\" value=\"Observe\">\n" +
-                        "  </form>\n" +
-                        "</li>";
-            }
-            line += "  </ul>\n";
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("page", "Community search");
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
+        List<List<String>> cs = new ArrayList<>();
+        for (Tuple<String, Tuple<String, String>> tpl : comms) {
+            List<String> eles = new ArrayList<>();
+            eles.add(tpl.getFirst());
+            eles.add(tpl.getSecond().getFirst());
+            eles.add(tpl.getSecond().getSecond());
+            cs.add(eles);
         }
 
-        line += "</body>";
+        data.put("numFound", cs.size());
+        data.put("communities", cs);
 
-        outputStream.println(line);
+        searchTemplate.process(data, new OutputStreamWriter(outputStream));
     }
 
     @Override
     public void writeInit(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
         String uri = request.getRequestURI();
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "  <form action=\"" + uri + "\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"config\">" +
-                "    <label for=\"name\">Config file:</label> \n" +
-                "    <input type=\"text\" id=\"config\" name=\"config\"> \n" +
-                "    <input type=\"submit\" value=\"Initiate\">\n" +
-                "  </form>\n" +
-                "  <form action=\"" + uri + "\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"read\">" +
-                "    <label for=\"name\">State file:</label> \n" +
-                "    <input type=\"text\" id=\"filename\" name=\"filename\"> \n" +
-                "    <input type=\"submit\" value=\"Read\">\n" +
-                "  </form>\n" +
-                "  <form action=\"" + uri + "experiments\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"setup\">" +
-                "    <label for=\"name\"> Config file:</label> \n" +
-                "    <input type=\"text\" id=\"config\" name=\"config\"> \n" +
-                "    <label for=\"name\"> File directory:</label> \n" +
-                "    <input type=\"text\" id=\"dir\" name=\"dir\"> \n" +
-                "    <label for=\"name\"> No. Nodes:</label> \n" +
-                "    <input type=\"number\" id=\"nodes\" name=\"nodes\"> \n" +
-                "    <label for=\"name\"> Replications:</label> \n" +
-                "    <input type=\"number\" id=\"rep\" name=\"rep\"> \n" +
-                "    <input type=\"submit\" value=\"Setup Experiments\">\n" +
-                "  </form>\n" +
-                "  <form action=\"" + uri + "experiments\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"start\">" +
-                "    <label for=\"name\"> Config file:</label> \n" +
-                "    <input type=\"text\" id=\"config\" name=\"config\"> \n" +
-                "    <label for=\"name\"> File directory:</label> \n" +
-                "    <input type=\"text\" id=\"dir\" name=\"dir\"> \n" +
-                "    <label for=\"name\"> Setup directory:</label> \n" +
-                "    <input type=\"text\" id=\"setup\" name=\"setup\"> \n" +
-                "    <label for=\"name\"> Node ID:</label> \n" +
-                "    <input type=\"number\" id=\"id\" name=\"id\"> \n" +
-                "    <label for=\"name\"> No. Nodes:</label> \n" +
-                "    <input type=\"number\" id=\"nodes\" name=\"nodes\"> \n" +
-                "    <label for=\"name\"> Chain Length:</label> \n" +
-                "    <input type=\"number\" id=\"chain\" name=\"chain\"> \n" +
-                "    <input type=\"submit\" value=\"Start\">\n" +
-                "  </form>\n" +
-                "  <form action=\"" + uri + "experiments\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"startUpdates\">" +
-                "    <label for=\"name\"> Config file:</label> \n" +
-                "    <input type=\"text\" id=\"config\" name=\"config\"> \n" +
-                "    <label for=\"name\"> Data Directory:</label> \n" +
-                "    <input type=\"text\" id=\"data\" name=\"data\"> \n" +
-                "    <input type=\"submit\" value=\"Start\">\n" +
-                "  </form>\n" +
-                "</body>";
 
-        outputStream.println(line);
+        Map data = new HashMap();
+
+        data.put("assetsPath", "assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("page", "Setup");
+
+        setupTemplate.process(data, new OutputStreamWriter(outputStream));
     }
 
     @Override
     public void writeSuggestUpdate(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
         String uri = request.getRequestURI();
-        String id = request.getParameter("id");
 
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "  <form action=\"" + uri.replace("api/update", "") + "\">\n" +
-                "    <input type=\"submit\" value=\"Back\">\n" +
-                "  </form><br/>\n" +
-                "  <form action=\"" + uri + "\" id=\"udpateform\">\n" +
-                "    Operations (SYNTAX: [+|-] (subj, pred, obj). One line for each operation):<br/>\n" +
-                "    <textarea name=\"content\" form=\"udpateform\" cols=\"100\" rows=\"30\"></textarea><br/>\n" +
-                "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + id + "\">" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"suggest\">" +
-                "    <input type=\"submit\" value=\"Submit\">\n" +
-                "  </form>\n" +
-                "</body>";
+        Map data = new HashMap();
 
-        outputStream.println(line);
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("page", "Modify fragment: " + AbstractNode.getState().getIndex().getPredicate(request.getParameter("id")));
+        data.put("id", request.getParameter("id"));
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
+        boolean search = request.getParameter("search") != null && !request.getParameter("search").equals("");
+        List<Triple> triples = new ArrayList<>();
+        HDT hdt = AbstractNode.getState().getDatasource(request.getParameter("id")).getHdt();
+
+        if(!search) {
+            IteratorTripleString iterator = hdt.search("", "", "");
+            int count = 0;
+            while(iterator.hasNext() && count < 20) {
+                TripleString triple = iterator.next();
+                triples.add(new Triple(triple.getSubject().toString(), triple.getPredicate().toString(), StringEscapeUtils.escapeHtml4(triple.getObject().toString())));
+                count++;
+            }
+        } else {
+            String s = request.getParameter("search");
+
+            // Subject position
+            IteratorTripleString iterator = hdt.search(s, "", "");
+
+            while(iterator.hasNext()) {
+                TripleString triple = iterator.next();
+                triples.add(new Triple(triple.getSubject().toString(), triple.getPredicate().toString(), StringEscapeUtils.escapeHtml4(triple.getObject().toString())));
+            }
+
+            // predicate position
+            iterator = hdt.search("", s, "");
+
+            while(iterator.hasNext()) {
+                TripleString triple = iterator.next();
+                triples.add(new Triple(triple.getSubject().toString(), triple.getPredicate().toString(), StringEscapeUtils.escapeHtml4(triple.getObject().toString())));
+            }
+
+            // Object position
+            iterator = hdt.search("", "", s);
+
+            while(iterator.hasNext()) {
+                TripleString triple = iterator.next();
+                triples.add(new Triple(triple.getSubject().toString(), triple.getPredicate().toString(), StringEscapeUtils.escapeHtml4(triple.getObject().toString())));
+            }
+        }
+
+        data.put("isSearch", search);
+        data.put("triples", triples);
+
+        modifyTemplate.process(data, new OutputStreamWriter(outputStream));
     }
 
     @Override
@@ -385,48 +337,83 @@ public class ResponseWriteHtml implements IResponseWriter {
         String uri = request.getRequestURI();
         String id = request.getParameter("id");
         ITransaction t = AbstractNode.getState().getSuggestedTransaction(id);
-        Gson gson = new Gson();
 
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "  <form action=\"" + uri.replace("api/update", "") + "\">\n" +
-                "    <input type=\"submit\" value=\"Back\">\n" +
-                "  </form><br/>\n" +
-                "  <form action=\"" + uri + "\">\n" +
-                "    <input type=\"hidden\" id=\"mode\" name=\"mode\" value=\"acc\">" +
-                "    <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + id + "\">" +
-                "    <input type=\"submit\" value=\"Accept\">\n" +
-                "  </form><br/>\n" + gson.toJson(t) +
-                "</body>";
+        Map data = new HashMap();
 
-        outputStream.println(line);
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("page", "Update: " + request.getParameter("id"));
+        data.put("id", request.getParameter("id"));
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
+        boolean search = request.getParameter("search") != null && !request.getParameter("search").equals("");
+        List<TripleData> operations = new ArrayList<>();
+        List<Operation> os = t.getOperations();
+
+        if(!search) {
+            for (Operation o : os) {
+                String type = o.getType().toString();
+                String subj = o.getTriple().getSubject();
+                String pred = o.getTriple().getPredicate();
+                String obj = o.getTriple().getObject();
+
+                operations.add(new TripleData(type, subj, pred, obj));
+            }
+        } else {
+            String s = request.getParameter("search");
+
+            for (Operation o : os) {
+                String type = o.getType().toString();
+                String subj = o.getTriple().getSubject();
+                String pred = o.getTriple().getPredicate();
+                String obj = o.getTriple().getObject();
+
+                if(s.equals(subj) || s.equals(pred) || s.equals(obj))
+                    operations.add(new TripleData(type, subj, pred, obj));
+            }
+        }
+
+        data.put("operations", operations);
+
+        updateTemplate.process(data, new OutputStreamWriter(outputStream));
     }
 
     @Override
     public void writeQueryResults(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        if (error) {
+            outputStream.println("There was an error. Please restart the client.");
+            return;
+        }
         String uri = request.getRequestURI().replace("api/sparql", "").replace("?", "");
-
-        String line = "<!doctype html>\n" +
-                "<html>\n" +
-                "<head>\n" +
-                "<meta charset=\"utf-8\">\n" +
-                "<title>Client</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "  <form action=\"" + uri.replace("api/update", "") + "\">\n" +
-                "    <input type=\"submit\" value=\"Back\">\n" +
-                "  </form><br/>\n";
-
+        String sparql = request.getParameter("query");
         long timestamp = -1;
+        String dateStr = "";
         if (request.getParameter("time") != null && !request.getParameter("time").equals(""))
             timestamp = Long.parseLong(request.getParameter("time"));
+        if (request.getParameter("date") != null && !request.getParameter("date").equals("")) {
+            dateStr = request.getParameter("date");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            Date parsedDate = dateFormat.parse(dateStr);
+            timestamp = parsedDate.getTime();
+            System.out.println(timestamp);
+        }
 
-        String sparql = request.getParameter("query");
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("page", "Query result");
+        data.put("query", sparql);
+        data.put("timestamp", timestamp);
+        data.put("dte", dateStr);
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
         Query query = QueryFactory.create(sparql);
         final ColchainGraph graph;
         if (timestamp == -1)
@@ -438,20 +425,318 @@ public class ResponseWriteHtml implements IResponseWriter {
         final QueryExecution executor = QueryExecutionFactory.create(query, model);
         final ResultSet rs = executor.execSelect();
 
+        int cnt = 0;
+        List<String> vars = new ArrayList<>();
+        List<List<String>> values = new ArrayList<>();
+        boolean first = true;
         while (rs.hasNext()) {
             QuerySolution sol = rs.next();
-            String s = "";
-            Iterator<String> vars = sol.varNames();
-            while (vars.hasNext()) {
-                String var = vars.next();
-                s += var + " -> (" + sol.get(var).toString() + ") ";
+            cnt++;
+            Iterator<String> vs = sol.varNames();
+            List<String> vals = new ArrayList<>();
+            while (vs.hasNext()) {
+                String var = vs.next();
+                if (first) {
+                    vars.add(var);
+                }
+                vals.add(sol.get(var).toString());
             }
-
-            line += s + "<br/>\n";
+            values.add(vals);
+            if (first) first = false;
         }
 
-        line += "</body>";
+        data.put("count", cnt);
+        data.put("variables", vars);
+        data.put("values", values);
 
-        outputStream.println(line);
+        queryTemplate.process(data, new OutputStreamWriter(outputStream));
+    }
+
+    @Override
+    public void writeCommunityDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        String uri = request.getRequestURI();
+
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
+        Community c = AbstractNode.getState().getCommunity(request.getParameter("id"));
+
+        data.put("page", c.getName());
+        data.put("community", c);
+
+        Set<String> ids = c.getFragmentIds();
+        List<FragmentMetadata> fragments = new ArrayList<>();
+        for (String id : ids) {
+            IDataSource datasource = AbstractNode.getState().getDatasource(id);
+            String pred = AbstractNode.getState().getIndex().getPredicate(id);
+            fragments.add(new FragmentMetadata(id, datasource.numTriples(), datasource.numSubjects(),
+                    datasource.numPredicates(), datasource.numObjects(), pred));
+        }
+
+        data.put("fragments", fragments);
+
+        communityTemplate.process(data, new OutputStreamWriter(outputStream));
+    }
+
+    @Override
+    public void writeFragmentSearch(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        String uri = request.getRequestURI();
+        String predicate = request.getParameter("predicate");
+
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+        data.put("page", "Search: " + predicate);
+
+        List<String> ids = AbstractNode.getState().getIndex().getByPredicate(predicate);
+        List<FragmentMetadata> fragments = new ArrayList<>();
+        for (String id : ids) {
+            IDataSource datasource = AbstractNode.getState().getDatasource(id);
+            fragments.add(new FragmentMetadata(id, datasource.numTriples(), datasource.numSubjects(),
+                    datasource.numPredicates(), datasource.numObjects(), predicate));
+        }
+
+        data.put("fragments", fragments);
+        data.put("numFragments", fragments.size());
+
+        predicateTemplate.process(data, new OutputStreamWriter(outputStream));
+    }
+
+    @Override
+    public void writeFragmentDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        String uri = request.getRequestURI();
+
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+
+        String id = request.getParameter("id");
+        KnowledgeChain chain = AbstractNode.getState().getChain(id);
+
+        String predicate = AbstractNode.getState().getIndex().getPredicate(id);
+        data.put("page", predicate);
+
+        List<ChainEntryData> entries = new ArrayList<>();
+        ChainEntry e = chain.top();
+
+        while(!e.isFirst()) {
+            ITransaction t = e.getTransaction();
+            int additions = 0, deletions = 0;
+            List<Operation> ops = t.getOperations();
+
+            for(Operation op : ops) {
+                if(op.getType() == Operation.OperationType.ADD)
+                    additions++;
+                else
+                    deletions++;
+            }
+
+            entries.add(new ChainEntryData(t.getId(), t.getTimestamp(), t.getAuthor(), additions, deletions));
+            e = e.previous();
+        }
+
+        data.put("chain", entries);
+        data.put("fragmentId", id);
+
+        fragmentTemplate.process(data, new OutputStreamWriter(outputStream));
+    }
+
+    @Override
+    public void writeTransactionDetails(ServletOutputStream outputStream, HttpServletRequest request) throws Exception {
+        String uri = request.getRequestURI();
+
+        Map data = new HashMap();
+
+        data.put("assetsPath", "../assets/");
+        data.put("date", new Date());
+        data.put("requestUri", uri);
+        data.put("address", AbstractNode.getState().getAddressPath());
+        data.put("updates", AbstractNode.getState().getPendingUpdates());
+        data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
+        data.put("page", "Transaction: " + request.getParameter("id"));
+        data.put("id", request.getParameter("id"));
+        data.put("fragment", request.getParameter("fragment"));
+
+        List<TripleData> operations = new ArrayList<>();
+
+        ChainEntry e = AbstractNode.getState().getChain(request.getParameter("fragment")).top();
+        ITransaction t = null;
+        while(t == null && !e.isFirst()) {
+            if(e.getTransaction().getId().equals(request.getParameter("id"))) {
+                t = e.getTransaction();
+            }
+            e = e.previous();
+        }
+
+        String author = "";
+        String date = "";
+        long timestamp = 0;
+        if(t != null) {
+            boolean search = request.getParameter("search") != null && !request.getParameter("search").equals("");
+
+            if (!search) {
+                for(Operation op : t.getOperations()) {
+                    String type = op.getType().toString();
+                    String subject = op.getTriple().getSubject();
+                    String predicate = op.getTriple().getPredicate();
+                    String object = op.getTriple().getObject();
+                    operations.add(new TripleData(type, subject, predicate, object));
+                }
+            } else {
+                String s = request.getParameter("search");
+                for(Operation op : t.getOperations()) {
+                    String type = op.getType().toString();
+                    String subject = op.getTriple().getSubject();
+                    String predicate = op.getTriple().getPredicate();
+                    String object = op.getTriple().getObject();
+                    if(subject.equals(s) || predicate.equals(s) || object.equals(s))
+                        operations.add(new TripleData(type, subject, predicate, object));
+                }
+            }
+            author = t.getAuthor();
+            timestamp = t.getTimestamp();
+
+            Date d = new Date();
+            d.setTime(timestamp);
+            date = new SimpleDateFormat("yyyy-MM-dd").format(d);
+        }
+
+        data.put("operations", operations);
+        data.put("author", author);
+        data.put("day", date);
+        data.put("timestamp", timestamp);
+
+        transactionTemplate.process(data, new OutputStreamWriter(outputStream));
+    }
+
+    public class FragmentMetadata {
+        public FragmentMetadata(String id, int triples, int subjects, int predicates, int objects, String predicate) {
+            this.id = id;
+            this.triples = triples;
+            this.subjects = subjects;
+            this.predicates = predicates;
+            this.objects = objects;
+            this.predicate = predicate;
+        }
+
+        private String predicate;
+        private String id;
+        private int triples;
+        private int subjects;
+        private int predicates;
+        private int objects;
+
+        public String getId() {
+            return id;
+        }
+
+        public String getTriples() {
+            return Integer.toString(triples);
+        }
+
+        public String getSubjects() {
+            return Integer.toString(subjects);
+        }
+
+        public String getPredicates() {
+            return Integer.toString(predicates);
+        }
+
+        public String getObjects() {
+            return Integer.toString(objects);
+        }
+
+        public String getPredicate() {
+            return predicate;
+        }
+    }
+
+    public class TripleData {
+        private String type;
+        private String subject;
+        private String predicate;
+        private String object;
+
+        public TripleData(String type, String subject, String predicate, String object) {
+            this.type = type;
+            this.subject = subject;
+            this.predicate = predicate;
+            this.object = object;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public String getPredicate() {
+            return predicate;
+        }
+
+        public String getObject() {
+            return object;
+        }
+
+        public boolean isAddition() {
+            return type.equals("ADD");
+        }
+    }
+
+    public class ChainEntryData {
+        private String id;
+        private String date;
+        private String author;
+        private int additions;
+        private int deletions;
+
+        public ChainEntryData(String id, long timestamp, String author, int additions, int deletions) {
+            this.id = id;
+            this.author = author;
+            this.additions = additions;
+            this.deletions = deletions;
+
+            Date d = new Date();
+            d.setTime(timestamp);
+            date = new SimpleDateFormat("yyyy-MM-dd").format(d);
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public String getAuthor() {
+            return author;
+        }
+
+        public String getAdditions() {
+            return Integer.toString(additions);
+        }
+
+        public String getDeletions() {
+            return Integer.toString(deletions);
+        }
     }
 }

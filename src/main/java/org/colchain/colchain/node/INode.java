@@ -92,4 +92,8 @@ public interface INode {
     void addNewFragment(String id, String predicate, String path, String community, byte[] key, ChainEntry entry);
 
     IDataSource getDatasource(String id, long timestamp);
+
+    String getAddressPath();
+
+    void addPending(Map<String, Tuple<ITransaction, Set<String>>> pending);
 }

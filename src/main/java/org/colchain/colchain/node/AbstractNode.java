@@ -35,6 +35,12 @@ public abstract class AbstractNode implements INode {
     }
 
     @Override
+    public String getAddressPath() {
+        if(address.endsWith("/")) return address;
+        return address + "/";
+    }
+
+    @Override
     public void setAddress(String address) {
         this.address = address;
     }
