@@ -1,6 +1,7 @@
 
 # ColChain: Collaborative Linked Data Networks
 [![Docker Stars](https://img.shields.io/docker/stars/caebel/colchain.svg)](https://hub.docker.com/r/caebel/colchain/) [![Docker Stars](https://img.shields.io/docker/pulls/caebel/colchain.svg)](https://hub.docker.com/r/caebel/colchain/)
+
 ColChain is a new unstructured Peer-to-Peer architecture for sharing and querying Semantic data. ColChain builds on top of [PIQNIC](https://github.com/Chraebe/PIQNIC) and applies community-based chains/ledgers of updates to Knowledge Graphs. 
 * [Abstract](#abstract)
 * [Requirements](#requirements)
