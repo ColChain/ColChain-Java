@@ -63,6 +63,13 @@ public class CommunityMember {
         } catch (IOException | EncoderException e) {}
     }
 
+    public void updateFragment(String fid) {
+        try {
+            String url = address + (address.endsWith("/")? "" : "/") + "api/update?mode=fragment&id=" + fid + "&address=" + urlCodec.encode(AbstractNode.getState().getAddress());
+            Request.Get(url).execute();
+        } catch (IOException | EncoderException e) {}
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

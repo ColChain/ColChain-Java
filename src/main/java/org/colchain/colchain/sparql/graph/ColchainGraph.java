@@ -1,5 +1,10 @@
 package org.colchain.colchain.sparql.graph;
 
+import org.apache.http.client.fluent.Content;
+import org.apache.http.client.fluent.Request;
+import org.apache.jena.n3.turtle.parser.ParseException;
+import org.apache.jena.n3.turtle.parser.TurtleParser;
+import org.colchain.colchain.sparql.ColchainTurtleEventHandler;
 import org.colchain.index.graph.IGraph;
 import org.colchain.colchain.community.Community;
 import org.colchain.colchain.node.AbstractNode;
@@ -28,10 +33,18 @@ import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.util.iterator.NiceIterator;
+import org.colchain.index.util.Tuple;
 import org.rdfhdt.hdt.hdt.HDT;
+import org.rdfhdt.hdt.hdt.HDTManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class ColchainGraph extends GraphBase {
@@ -40,6 +53,8 @@ public class ColchainGraph extends GraphBase {
     private static ColchainCapabilities capabilities = new ColchainCapabilities();
     private ReorderTransformation reorderTransform;
     private static URLCodec urlCodec = new URLCodec("utf8");
+    private final static Map<Tuple<String, Long>, HDT> FILE_CACHE = new HashMap<>();
+    private final static int THRESHOLD = 100;
     private long timestamp = 0;
     private boolean timeIncluded = false;
 
@@ -78,12 +93,16 @@ public class ColchainGraph extends GraphBase {
             Community community = AbstractNode.getState().getCommunity(cid);
             if (community.getMemberType() == Community.MemberType.PARTICIPANT) {
                 HDT datasource;
-                if(timeIncluded)
+                if (timeIncluded)
                     datasource = AbstractNode.getState().getDatasource(graph.getId(), timestamp).getHdt();
                 else
                     datasource = AbstractNode.getState().getDatasource(graph.getId()).getHdt();
                 queue.add(new LocalColchainIterator(jenaTriple, bindings, datasource));
-            } else {
+            } /*else if ((timeIncluded && FILE_CACHE.containsKey(new Tuple<>(graph.getId() + ".hdt", timestamp)))) {
+                queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(graph.getId() + ".hdt", timestamp))));
+            } else if (FILE_CACHE.containsKey(new Tuple<>(graph.getId() + ".hdt", -1L))) {
+                queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(graph.getId() + ".hdt", -1L))));
+            } */ else {
                 String url = "";
                 try {
                     url = getFragmentUrl(jenaTriple, bindings, graph);
@@ -91,11 +110,105 @@ public class ColchainGraph extends GraphBase {
                     continue;
                 }
 
-                queue.add(new RemoteColchainIterator(url, jenaTriple, bindings));
+                /*int numResults = getNumResults(url);
+                if (numResults > THRESHOLD) {
+                    String filename = graph.getId() + ".hdt";
+                    downloadFragment(graph);
+
+                    if (timeIncluded)
+                        queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(filename, timestamp))));
+                    else
+                        queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(filename, -1L))));
+                } else {*/
+                    queue.add(new RemoteColchainIterator(url, jenaTriple, bindings));
+                //}
             }
         }
 
         return new ColchainJenaIterator(queue);
+    }
+
+    private void downloadFragment(IGraph graph) {
+        String url = getFragmentUrl(graph, false);
+        String filePathString = AbstractNode.getState().getDatastore() + (AbstractNode.getState().getDatastore().endsWith("/") ? "" : "/") + "cache/";
+        new File(filePathString).mkdirs();
+        filePathString = filePathString + graph.getId() + (timeIncluded ? "-" + timestamp : "") + ".hdt";
+        downloadFile(url, filePathString);
+
+        // Download index
+        url = getFragmentUrl(graph, true);
+        filePathString = filePathString + ".index.v1-1";
+        downloadFile(url, filePathString);
+
+        try {
+            if (timeIncluded)
+                FILE_CACHE.put(new Tuple<>(graph.getId() + ".hdt", timestamp), HDTManager.mapIndexedHDT(filePathString.replace(".index.v1-1", "")));
+            else
+                FILE_CACHE.put(new Tuple<>(graph.getId() + ".hdt", -1L), HDTManager.mapIndexedHDT(filePathString.replace(".index.v1-1", "")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void downloadFile(String url, String filePathString) {
+        Content content = null;
+        try {
+            ColchainJenaConstants.NEM++;
+            content = Request.Get(url).addHeader("accept", "text/hdt").execute().returnContent();
+            ColchainJenaConstants.NTB += content.asBytes().length;
+        } catch (IOException e) {
+            return;
+        }
+
+        InputStream stream = content.asStream();
+        try {
+            Files.copy(stream, Paths.get(".", filePathString), StandardCopyOption.REPLACE_EXISTING);
+            stream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getFragmentUrl(IGraph graph, boolean index) {
+        StringBuilder sb = new StringBuilder();
+        String address = AbstractNode.getState().getCommunity(graph.getCommunity()).getParticipant().getAddress();
+
+        sb.append(address + (address.endsWith("/") ? "" : "/"));
+        sb.append("fragment/" + graph.getId() + ".hdt");
+
+        if (index) {
+            sb.append(".index.v1-1");
+        }
+
+        if (timeIncluded) {
+            sb.append("?");
+            sb.append("time=" + timestamp);
+        }
+
+        return sb.toString();
+    }
+
+    private int getNumResults(String url) {
+        Content content = null;
+        try {
+            ColchainJenaConstants.NEM++;
+            content = Request.Get(url).addHeader("accept", "text/turtle").execute().returnContent();
+            ColchainJenaConstants.NTB += content.asBytes().length;
+        } catch (IOException e) {
+            return 0;
+        }
+
+        TurtleParser parser = new TurtleParser(content.asStream());
+        ColchainTurtleEventHandler handler = new ColchainTurtleEventHandler(url);
+        parser.setEventHandler(handler);
+        try {
+            parser.parse();
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return 0;
+        }
+
+        return handler.getNumResults();
     }
 
     private String getFragmentUrl(Triple jenaTriple, ColchainBindings bindings, IGraph graph) throws EncoderException {

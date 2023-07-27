@@ -14,6 +14,10 @@
         <servlet-class>org.linkeddatafragments.servlet.LinkedDataFragmentServlet</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>FragmentServlet</servlet-name>
+        <servlet-class>org.linkeddatafragments.servlet.FragmentServlet</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>ExperimentsServlet</servlet-name>
         <servlet-class>org.colchain.colchain.servlet.ExperimentsServlet</servlet-class>
     </servlet>
@@ -30,6 +34,10 @@
     <servlet-mapping>
         <servlet-name>LdfServlet</servlet-name>
         <url-pattern>/ldf/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>FragmentServlet</servlet-name>
+        <url-pattern>/fragment/*</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>WebInterfaceServlet</servlet-name>

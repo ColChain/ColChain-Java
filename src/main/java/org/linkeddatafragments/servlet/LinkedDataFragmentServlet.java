@@ -6,11 +6,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.colchain.colchain.node.AbstractNode;
 import org.colchain.colchain.servlet.WebInterfaceServlet;
@@ -39,10 +39,11 @@ public class LinkedDataFragmentServlet extends HttpServlet {
     private File getConfigFile(ServletConfig config) throws IOException {
         String path = config.getServletContext().getRealPath("/");
 
+
         if (path == null) {
             path = System.getProperty("user.dir");
         }
-        File cfg = new File("config-example.json");
+        File cfg = new File("config.json");
         if (config.getInitParameter(CFGFILE) != null) {
             cfg = new File(config.getInitParameter(CFGFILE));
         }

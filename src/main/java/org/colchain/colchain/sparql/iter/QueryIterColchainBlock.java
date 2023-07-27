@@ -1,5 +1,8 @@
 package org.colchain.colchain.sparql.iter;
 
+import org.colchain.colchain.community.CommunityMember;
+import org.colchain.colchain.sparql.ColchainJenaConstants;
+import org.colchain.index.graph.IGraph;
 import org.colchain.index.index.IndexMapping;
 import org.colchain.colchain.node.AbstractNode;
 import org.apache.jena.atlas.io.IndentedWriter;
@@ -15,6 +18,7 @@ import org.apache.jena.sparql.util.FmtUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class QueryIterColchainBlock extends QueryIter1 {
     private BasicPattern pattern;
@@ -44,7 +48,25 @@ public class QueryIterColchainBlock extends QueryIter1 {
         for (Triple triple : pattern) {
             triples.add(new org.colchain.index.util.Triple(triple.getSubject().toString(), triple.getPredicate().toString(), triple.getObject().toString()));
         }
+
+        Set<IGraph> relevantFragments = AbstractNode.getState().getIndex().getRelevantFragments(triples);
+
+        ColchainJenaConstants.NRFBO = relevantFragments.size();
+        ColchainJenaConstants.NRNBO = AbstractNode.getState().getNumRelevantNodes(relevantFragments);
+
         mapping = AbstractNode.getState().getIndex().getMapping(triples);
+
+        ColchainJenaConstants.NRF = mapping.getNumFragments();
+        ColchainJenaConstants.NRN = mapping.getNumNodes();
+        ColchainJenaConstants.INDEXED = AbstractNode.getState().getIndex().getGraphs().size();
+        ColchainJenaConstants.LOCAL = mapping.getNumNodesLocal();
+
+        Set<CommunityMember> nodes = mapping.getInvolvedNodes();
+        nodes.add(AbstractNode.getState().getAsCommunityMember());
+        ColchainJenaConstants.NIQ = nodes.size();
+        ColchainJenaConstants.NODES_INVOLVED.addAll(nodes);
+
+        //System.out.println(mapping.toString());
 
         for (Triple triple : pattern) {
             chain = new QueryIterColchain(chain, triple, execContext,
@@ -52,6 +74,7 @@ public class QueryIterColchainBlock extends QueryIter1 {
                             triple.getPredicate().toString(),
                             triple.getObject().toString())));
         }
+        //System.out.println(triples.toString());
 
         this.output = chain;
     }

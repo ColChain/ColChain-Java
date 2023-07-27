@@ -24,11 +24,14 @@ import org.rdfhdt.hdt.hdt.HDT;
 import org.rdfhdt.hdt.triples.IteratorTripleString;
 import org.rdfhdt.hdt.triples.TripleString;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class ResponseWriteHtml implements IResponseWriter {
@@ -395,10 +398,10 @@ public class ResponseWriteHtml implements IResponseWriter {
             timestamp = Long.parseLong(request.getParameter("time"));
         if (request.getParameter("date") != null && !request.getParameter("date").equals("")) {
             dateStr = request.getParameter("date");
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Date parsedDate = dateFormat.parse(dateStr);
-            timestamp = parsedDate.getTime();
-            System.out.println(timestamp);
+            DateTimeFormatter formatDateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+            LocalDateTime localDateTime = LocalDateTime.from(formatDateTime.parse(dateStr));
+            Timestamp ts = Timestamp.valueOf(localDateTime);
+            timestamp = ts.getTime();
         }
 
         Map data = new HashMap();
@@ -414,6 +417,7 @@ public class ResponseWriteHtml implements IResponseWriter {
         data.put("updates", AbstractNode.getState().getPendingUpdates());
         data.put("numUpdates", AbstractNode.getState().getPendingUpdates().size());
 
+        long startTime = System.currentTimeMillis();
         Query query = QueryFactory.create(sparql);
         final ColchainGraph graph;
         if (timestamp == -1)
@@ -444,6 +448,8 @@ public class ResponseWriteHtml implements IResponseWriter {
             values.add(vals);
             if (first) first = false;
         }
+
+        System.out.println("Query took " + (System.currentTimeMillis() - startTime) + " ms. to execute");
 
         data.put("count", cnt);
         data.put("variables", vars);
@@ -502,10 +508,16 @@ public class ResponseWriteHtml implements IResponseWriter {
         List<String> ids = AbstractNode.getState().getIndex().getByPredicate(predicate);
         List<FragmentMetadata> fragments = new ArrayList<>();
         for (String id : ids) {
-            IDataSource datasource = AbstractNode.getState().getDatasource(id);
-            fragments.add(new FragmentMetadata(id, datasource.numTriples(), datasource.numSubjects(),
-                    datasource.numPredicates(), datasource.numObjects(), predicate));
+            try {
+                IDataSource datasource = AbstractNode.getState().getDatasource(id);
+                fragments.add(new FragmentMetadata(id, datasource.numTriples(), datasource.numSubjects(),
+                        datasource.numPredicates(), datasource.numObjects(), predicate));
+            } catch (NullPointerException e) {
+                continue;
+            }
         }
+
+
 
         data.put("fragments", fragments);
         data.put("numFragments", fragments.size());
@@ -614,7 +626,7 @@ public class ResponseWriteHtml implements IResponseWriter {
 
             Date d = new Date();
             d.setTime(timestamp);
-            date = new SimpleDateFormat("yyyy-MM-dd").format(d);
+            date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm").format(d);
         }
 
         data.put("operations", operations);
@@ -716,7 +728,7 @@ public class ResponseWriteHtml implements IResponseWriter {
 
             Date d = new Date();
             d.setTime(timestamp);
-            date = new SimpleDateFormat("yyyy-MM-dd").format(d);
+            date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm").format(d);
         }
 
         public String getId() {

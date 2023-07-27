@@ -1,6 +1,6 @@
 package org.linkeddatafragments.fragments.tpf;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.linkeddatafragments.config.ConfigReader;
 import org.linkeddatafragments.fragments.FragmentRequestParserBase;

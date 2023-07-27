@@ -25,6 +25,7 @@ public class LocalColchainIterator extends NiceIterator<Pair<Triple, Binding>> {
     private Pair<Triple, Binding> next = null;
 
     public LocalColchainIterator(Triple triple, ColchainBindings bindings, HDT datasource) {
+        //System.out.println("Local: " + triple.toString());
         this.datasource = datasource;
         this.it = new IteratorTriple(triple, bindings);
         if(it.hasNext()) {

@@ -2,6 +2,7 @@ package org.colchain.colchain.node;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.colchain.colchain.community.CommunityMember;
 import org.colchain.colchain.node.impl.NodeImpl;
 import org.colchain.colchain.util.NodeSerializer;
 import org.linkeddatafragments.datasource.IDataSource;
@@ -70,5 +71,10 @@ public abstract class AbstractNode implements INode {
 
         Gson gson = new GsonBuilder().registerTypeAdapter(INode.class, new NodeSerializer()).create();
         state = gson.fromJson(json, INode.class);
+    }
+
+    @Override
+    public CommunityMember getAsCommunityMember() {
+        return new CommunityMember(this.getId(), address);
     }
 }

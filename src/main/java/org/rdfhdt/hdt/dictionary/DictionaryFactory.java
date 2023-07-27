@@ -79,7 +79,7 @@ public class DictionaryFactory {
 	
 	public static DictionaryPrivate createDictionary(HDTOptions spec) {
 		String name = spec.get("dictionary.type");
-		if(name==null || HDTVocabulary.DICTIONARY_TYPE_FOUR_SECTION.equals(name)) {
+		if(name==null || HDTVocabulary.DICTIONARY_TYPE_FOUR_SECTION.equals(name) || name.equals("null")) {
 			return new FourSectionDictionary(spec);
 		}
 		else if (HDTVocabulary.DICTIONARY_TYPE_FOUR_PSFC_SECTION.equals(name)){

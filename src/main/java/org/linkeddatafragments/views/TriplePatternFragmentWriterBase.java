@@ -4,7 +4,7 @@ import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import javax.servlet.ServletOutputStream;
+import jakarta.servlet.ServletOutputStream;
 import org.linkeddatafragments.datasource.IDataSource;
 import org.linkeddatafragments.fragments.ILinkedDataFragment;
 import org.linkeddatafragments.fragments.ILinkedDataFragmentRequest;

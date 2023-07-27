@@ -29,7 +29,7 @@
                 SPARQL
                 <div class="time">
                     <label for="date">Date</label>
-                    <input type="date" id="date" name="date" <#if hasDate>value="${day}" style="background-color:#8f9c00;"</#if>>
+                    <input type="datetime-local" id="date" name="date" <#if hasDate>value="${day}" style="background-color:#8f9c00;"</#if>>
                 </div>
             </div>
             <textarea name="query" form="queryform">
@@ -163,7 +163,7 @@ SELECT ?a ?b ?c WHERE {
 <script src="${assetsPath}sigma.renderers.edgeLabels.min.js"></script>
 <div class="contbox">
     <font style="text-transform: uppercase; font-weight: bold; color:#7c7c7c">Network Structure</font>
-    <font style="font-weight: bold; color: rgb(189,79,108); font-size: x-large">&rarr;</font> Participant <font style="font-weight: bold; color: rgb(82,167,193); font-size: x-large">&rarr;</font> Observer
+    <font style="font-weight: bold; color: rgb(189,79,108); font-size: x-large">&rarr;</font> Participant <!--<font style="font-weight: bold; color: rgb(82,167,193); font-size: x-large">&rarr;</font> Observer-->
     <div id="network-graph"></div>
 </div>
 
@@ -217,7 +217,7 @@ SELECT ?a ?b ?c WHERE {
         type: 'arrow'
     });
     </#list>
-    <#list observers as part>
+    <#--<#list observers as part>
     g.edges.push({
         id: '${part.getFirst()}-${part.getSecond()}',
         source: '${part.getFirst()}',
@@ -225,7 +225,7 @@ SELECT ?a ?b ?c WHERE {
         color: 'rgb(82,167,193)',
         type: 'arrow'
     });
-    </#list>
+    </#list>-->
 
     var s = new sigma({
         graph: g,

@@ -25,6 +25,7 @@ import org.rdfhdt.hdt.hdt.HDT;
 import org.rdfhdt.hdt.hdt.HDTManager;
 import org.rdfhdt.hdt.options.HDTSpecification;
 import org.rdfhdt.hdt.triples.IteratorTripleString;
+import org.rdfhdt.hdt.triples.TripleString;
 import org.rdfhdt.hdtjena.NodeDictionary;
 
 
@@ -146,6 +147,14 @@ public class HdtDataSource extends DataSourceBase {
     }
 
     @Override
+    public void reload() {
+        try {
+            datasource = HDTManager.mapIndexedHDT(hdtFile, null);
+        } catch (IOException e) {
+        }
+    }
+
+    @Override
     public IBloomFilter<String> createBloomFilter() {
         String filename = AbstractNode.getState().getDatastore() + "index/" + title + ".hdt.ppbf";
         File f = new File(filename);
@@ -153,27 +162,15 @@ public class HdtDataSource extends DataSourceBase {
         IBloomFilter<String> filter = PrefixPartitionedBloomFilter.create(filename);
 
         try {
-            Iterator<? extends CharSequence> it = datasource.getDictionary().getSubjects().getSortedEntries();
-            while (it.hasNext()) {
-                filter.put(it.next().toString());
+            IteratorTripleString iterator = datasource.search("", "", "");
+            while(iterator.hasNext()) {
+                TripleString ts = iterator.next();
+                filter.put(ts.getSubject().toString());
+                filter.put(ts.getObject().toString());
+                filter.put(ts.getPredicate().toString());
             }
-        } catch (NullPointerException e) {
-        }
-
-        try {
-            Iterator<? extends CharSequence> it = datasource.getDictionary().getPredicates().getSortedEntries();
-            while (it.hasNext()) {
-                filter.put(it.next().toString());
-            }
-        } catch (NullPointerException e) {
-        }
-
-        try {
-            Iterator<? extends CharSequence> it = datasource.getDictionary().getObjects().getSortedEntries();
-            while (it.hasNext()) {
-                filter.put(it.next().toString());
-            }
-        } catch (NullPointerException e) {
+        } catch (NotFoundException e) {
+            return filter;
         }
 
         return filter;

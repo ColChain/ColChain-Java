@@ -25,6 +25,7 @@ public class RemoteColchainIterator extends NiceIterator<Pair<Triple, Binding>> 
     private Pair<Triple, Binding> next = null;
 
     public RemoteColchainIterator(String startUrl, Triple triple, ColchainBindings bindings) {
+        //System.out.println("Remote: " + triple.toString() + " \nStartURL: " + startUrl);
         this.currUrl = startUrl;
         this.triple = triple;
         this.bindings = bindings;
@@ -65,17 +66,20 @@ public class RemoteColchainIterator extends NiceIterator<Pair<Triple, Binding>> 
             currUrl = null;
             return;
         }
+        //System.out.println(content.asString());
         TurtleParser parser = new TurtleParser(content.asStream());
         ColchainTurtleEventHandler handler = new ColchainTurtleEventHandler(currUrl);
         parser.setEventHandler(handler);
         try {
             parser.parse();
         } catch (ParseException e) {
+            e.printStackTrace();
             currUrl = null;
             return;
         }
 
         List<Triple> lst = handler.getTriples();
+        //System.out.println("Results: " + lst.toString());
         if(handler.hasNextPage()) currUrl = handler.getNextPageUrl();
         else currUrl = null;
         results = extendBindings(bindings, triple, lst);

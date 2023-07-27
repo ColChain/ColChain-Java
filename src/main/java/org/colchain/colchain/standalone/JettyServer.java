@@ -12,6 +12,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.linkeddatafragments.servlet.FragmentServlet;
 import org.linkeddatafragments.servlet.LinkedDataFragmentServlet;
 
 public class JettyServer {
@@ -76,6 +77,10 @@ public class JettyServer {
         ServletHolder holderDynamic = new ServletHolder("ldf", LinkedDataFragmentServlet.class);
         holderDynamic.setInitParameter(LinkedDataFragmentServlet.CFGFILE, config);
         context.addServlet(holderDynamic, "/ldf/*");
+
+        ServletHolder holderFragment = new ServletHolder("fragment", FragmentServlet.class);
+        holderFragment.setInitParameter(FragmentServlet.CFGFILE, config);
+        context.addServlet(holderFragment, "/fragment/*");
 
         // add special pathspec of "/home/" content mapped to the homePath
         ServletHolder holderHome = new ServletHolder("static-home", DefaultServlet.class);

@@ -372,4 +372,13 @@ public class NodeImpl extends AbstractNode implements INode {
             writer.close();
         } catch (IOException e) {}
     }
+
+    @Override
+    public int getNumRelevantNodes(Set<IGraph> fragments) {
+        Set<CommunityMember> nodes = new HashSet<>();
+        for(IGraph fragment : fragments) {
+            nodes.addAll(this.getCommunityByFragmentId(fragment.getId()).getParticipants());
+        }
+        return nodes.size();
+    }
 }

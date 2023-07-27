@@ -1,6 +1,12 @@
 <component name="ArtifactManager">
   <artifact type="war" name="ColChain-Java:war">
     <output-path>$PROJECT_DIR$/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>ColChain-Java</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
     <root id="archive" name="colchain-0.1.war">
       <element id="artifact" artifact-name="ColChain-Java:war exploded" />
     </root>

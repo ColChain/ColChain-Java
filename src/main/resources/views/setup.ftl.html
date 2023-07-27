@@ -22,18 +22,24 @@
             <h3>Oops! It looks like you haven't setup your ColChain client yet.</h3>
             Please specify the path to the <b>config</b> file (.json):<br/><br/>
 
-            <form action="${requestUri}">
+            <form action="${requestUri}" method="post" enctype="multipart/form-data" id="configform">
               <input type="hidden" id="mode" name="mode" value="config">
-              <input type="text" id="config" name="config">
-              <input type="submit" id="submit" value="Submit">
+                <label for="configfile" class="drop-container" id="configdrop">
+                    <span class="drop-title">Drop files here</span>
+                    or
+                    <input type="file" id="configfile" name="configfile" required><input type="submit" id="submit" value="Submit">
+                </label>
             </form><br/>
 
             Alternatively, please specify the <b>state</b> file (.kc):<br/><br/>
 
-            <form action="${requestUri}">
-              <input type="hidden" id="mode" name="mode" value="read">
-              <input type="text" id="filename" name="filename">
-              <input type="submit" id="submit" value="Submit">
+            <form action="${requestUri}" method="post" enctype="multipart/form-data" id="stateform">
+                <input type="hidden" id="mode" name="mode" value="read">
+                <label for="statefile" class="drop-container" id="statedrop">
+                    <span class="drop-title">Drop files here</span>
+                    or
+                    <input type="file" id="statefile" name="statefile" required><input type="submit" id="submit" value="Submit">
+                </label>
             </form>
         </div>
     </div>
@@ -46,5 +52,52 @@
         <a href="https://relweb.cs.aau.dk/colchain/" style="font-weight: bold" target="_blank">Website</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://github.com/ColChain/ColChain-Java" style="font-weight: bold" target="_blank">GitHub</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://dl.acm.org/doi/10.1145/3442381.3450037" style="font-weight: bold" target="_blank">Paper</a>
     </div>
 </div>
+
+<script>
+    const configDropContainer = document.getElementById("configdrop")
+    const configFileInput = document.getElementById("configfile")
+
+    configDropContainer.addEventListener("dragover", (e) => {
+        // prevent default to allow drop
+        e.preventDefault()
+    }, false)
+
+    configDropContainer.addEventListener("dragenter", () => {
+        configDropContainer.classList.add("drag-active")
+    })
+
+    configDropContainer.addEventListener("dragleave", () => {
+        configDropContainer.classList.remove("drag-active")
+    })
+
+    configDropContainer.addEventListener("drop", (e) => {
+        e.preventDefault()
+        configDropContainer.classList.remove("drag-active")
+        configFileInput.files = e.dataTransfer.files
+    })
+
+    const stateDropContainer = document.getElementById("statedrop")
+    const stateFileInput = document.getElementById("statefile")
+
+    stateDropContainer.addEventListener("dragover", (e) => {
+        // prevent default to allow drop
+        e.preventDefault()
+    }, false)
+
+    stateDropContainer.addEventListener("dragenter", () => {
+        stateDropContainer.classList.add("drag-active")
+    })
+
+    stateDropContainer.addEventListener("dragleave", () => {
+        stateDropContainer.classList.remove("drag-active")
+    })
+
+    stateDropContainer.addEventListener("drop", (e) => {
+        e.preventDefault()
+        stateDropContainer.classList.remove("drag-active")
+        stateFileInput.files = e.dataTransfer.files
+    })
+
+</script>
 </body>
 </html>

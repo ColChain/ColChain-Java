@@ -61,14 +61,16 @@ public class KnowledgeChain implements IKnowledgeChain {
         // Chain part
         transaction.setTimestamp();
         entry = new ChainEntry(transaction, entry);
-        datasource.updateHdt(transaction);
-        datasource.deleteBloomFilter();
-        AbstractNode.getState().getIndex().updateIndex(transaction.getFragmentId(), datasource.createBloomFilter());
-
         if (transaction.getAuthor().equals(AbstractNode.getState().getId())) {
-            Set<CommunityMember> obs = AbstractNode.getState().getCommunityByFragmentId(transaction.getFragmentId()).getObservers();
-            for (CommunityMember o : obs) {
-                o.updateIndex(transaction.getFragmentId());
+            datasource.updateHdt(transaction);
+            datasource.deleteBloomFilter();
+            //AbstractNode.getState().getIndex().updateIndex(transaction.getFragmentId(), datasource.createBloomFilter());
+            datasource.createBloomFilter();
+
+        //if (transaction.getAuthor().equals(AbstractNode.getState().getId())) {
+            Set<CommunityMember> parts = AbstractNode.getState().getCommunityByFragmentId(transaction.getFragmentId()).getParticipants();
+            for (CommunityMember p : parts) {
+                p.updateFragment(transaction.getFragmentId());
             }
         }
     }

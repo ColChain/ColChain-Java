@@ -18,4 +18,5 @@ public interface IIndex {
     void updateIndex(String fragmentId, IBloomFilter<String> filter);
     String getPredicate(String id);
     List<String> getByPredicate(String predicate);
+    Set<IGraph> getRelevantFragments(List<Triple> triples);
 }

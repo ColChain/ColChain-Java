@@ -3,6 +3,9 @@ package org.colchain.colchain.servlet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import jakarta.servlet.*;
+import jakarta.servlet.http.Part;
+import org.apache.commons.io.IOUtils;
 import org.colchain.colchain.knowledgechain.impl.ChainEntry;
 import org.colchain.colchain.util.ChainSerializer;
 import org.colchain.colchain.util.TransactionSerializer;
@@ -38,42 +41,88 @@ import org.apache.http.util.EntityUtils;
 import org.linkeddatafragments.datasource.DataSourceFactory;
 import org.linkeddatafragments.datasource.IDataSource;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class NodeApiServlet extends HttpServlet {
-    private IResponseWriter writer = ResponseWriterFactory.createWriter();
+    private static final MultipartConfigElement MULTI_PART_CONFIG = new MultipartConfigElement("temp");
+    private final IResponseWriter writer = ResponseWriterFactory.createWriter();
     private final CloseableHttpClient httpClient = HttpClients.createDefault();
 
-    /**
-     * @param servletConfig
-     * @throws ServletException
-     */
     @Override
-    public void init(ServletConfig servletConfig) throws ServletException {
-    }
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String contentType = request.getContentType();
+        if (contentType != null && contentType.startsWith("multipart/")) {
+            request.setAttribute(org.eclipse.jetty.server.Request.__MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
+        } else {
+            try {
+                writer.writeInit(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            return;
+        }
 
-    /**
-     *
-     */
-    @Override
-    public void destroy() {
-    }
+        String contextPath = request.getContextPath();
+        String requestURI = request.getRequestURI();
 
+        String path = contextPath == null
+                ? requestURI
+                : requestURI.substring(contextPath.length());
+
+        String endpoint = path.substring(path.lastIndexOf("/") + 1);
+        String filename = "";
+
+        if(endpoint.equals("upload")) {
+            Part part = request.getPart("hdtfile");
+            if (part == null || part.getSize() == 0) {
+                try {
+                    writer.writeInit(response.getOutputStream(), request);
+                } catch (Exception e) {
+                    throw new ServletException(e);
+                }
+                return;
+            } else {
+                filename = part.getSubmittedFileName();
+                InputStream is = part.getInputStream();
+                FileUtils.copyInputStreamToFile(is, new File(filename));
+            }
+
+            if(filename.equals("")) {
+                response.getWriter().println("HDT file does not exist.");
+                return;
+            }
+            File f = new File(filename);
+            String community = IOUtils.toString(request.getPart("community").getInputStream(), Charset.defaultCharset());
+            if (!f.exists()) {
+                response.getWriter().println("HDT file does not exist.");
+                return;
+            }
+
+            HdtUtils.upload(filename, community);
+            System.out.println("Uploaded!");
+
+            try {
+                writer.writeLandingPage(response.getOutputStream(), request);
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+        }
+    }
 
     /**
      * @param request
@@ -143,12 +192,33 @@ public class NodeApiServlet extends HttpServlet {
         if(filename == null || filename.equals("")) return;
 
         AbstractNode.getState().saveState(filename);
+        File file = new File(filename);
+        if(!file.exists()){
+            throw new ServletException("File doesn't exists on server.");
+        }
 
-        try {
+        ServletContext ctx = getServletContext();
+        InputStream fis = new FileInputStream(file);
+        String mimeType = ctx.getMimeType(file.getAbsolutePath());
+        response.setContentType(mimeType != null? mimeType:"application/cc-state");
+        response.setContentLength((int) file.length());
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+
+        ServletOutputStream os = response.getOutputStream();
+        byte[] bufferData = new byte[1024];
+        int read = 0;
+        while((read = fis.read(bufferData))!= -1){
+            os.write(bufferData, 0, read);
+        }
+        os.flush();
+        os.close();
+        fis.close();
+
+        /*try {
             writer.writeRedirect(response.getOutputStream(), request, "api/save");
         } catch (Exception e) {
             throw new ServletException(e);
-        }
+        }*/
     }
 
     private void handleFragment(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -227,6 +297,9 @@ public class NodeApiServlet extends HttpServlet {
         } else if(mode.equals("index")) {
             downloadIndex(request.getParameter("address"), request.getParameter("id"));
             return;
+        } else if(mode.equals("fragment")) {
+            AbstractNode.getState().getDatasource(request.getParameter("id")).reload();
+            return;
         }
 
         try {
@@ -281,7 +354,7 @@ public class NodeApiServlet extends HttpServlet {
         System.out.println("Uploaded!");
 
         try {
-            writer.writeRedirect(response.getOutputStream(), request, "/api/upload");
+            writer.writeLandingPage(response.getOutputStream(), request);
         } catch (Exception e) {
             throw new ServletException(e);
         }
@@ -416,6 +489,15 @@ public class NodeApiServlet extends HttpServlet {
             address = address + (address.endsWith("/") ? "" : "/");
 
             Community c = fetchCommunity(address + "api/community?mode=meta&id=" + id);
+            Set<CommunityMember> members = c.getParticipants();
+            for(CommunityMember cm : members) {
+                if(cm.getAddress().contains("localhost")) {
+                    CommunityMember mem = new CommunityMember(cm.getId(), address);
+                    c.getParticipants().remove(cm);
+                    c.getParticipants().add(mem);
+                }
+            }
+
             c.setMemberType(Community.MemberType.OBSERVER);
 
             Set<CommunityMember> parts = c.getParticipants();
@@ -493,7 +575,7 @@ public class NodeApiServlet extends HttpServlet {
         }
 
         try {
-            writer.writeRedirect(response.getOutputStream(), request, "/api/community");
+            writer.writeLandingPage(response.getOutputStream(), request);
         } catch (Exception e) {
             throw new ServletException(e);
         }

@@ -1,4 +1,6 @@
+
 # ColChain: Collaborative Linked Data Networks
+[![Docker Stars](https://img.shields.io/docker/stars/caebel/colchain.svg)](https://hub.docker.com/r/caebel/colchain/) [![Docker Stars](https://img.shields.io/docker/pulls/caebel/colchain.svg)](https://hub.docker.com/r/caebel/colchain/)
 ColChain is a new unstructured Peer-to-Peer architecture for sharing and querying Semantic data. ColChain builds on top of [PIQNIC](https://github.com/Chraebe/PIQNIC) and applies community-based chains/ledgers of updates to Knowledge Graphs. 
 * [Abstract](#abstract)
 * [Requirements](#requirements)
@@ -14,10 +16,23 @@ One of the major obstacles that currently prevents the Semantic Web from exploit
 ### Demo paper
 The current architecture of the Semantic Web fully relies on the individual data providers to maintain access to their data and to keep their data up to date. While this may seem like a practical and straightforward solution, it often results in the data being unavailable or outdated. In this paper, we present a fully functioning client along with a user-friendly interface for ColChain, a system that increases availability of knowledge graphs and enables users to update the data in a community-driven way while still allowing them to query old versions.
 # Requirements
+* ***Docker*** 20 or higher
+
+*Or the following:*
+
 * Java 8 or newer
 * Maven
 * Application server such as [Jetty](https://www.eclipse.org/jetty/) or [Tomcat](http://tomcat.apache.org/)
 # Installation
+To install and run ColChain, either use the Docker image available on Docker Hub [on this link](https://hub.docker.com/r/caebel/colchain), or follow the guide below.
+## Install with Docker
+To install from Docker, simply use the following command:
+```
+docker run -d -p <port>:8080 caebel/colchain
+```
+where `<port>` is the port you want your ColChain instance to be mapped to.
+
+## Install without Docker
 ### Build
 To install and run a ColChain node, build the project using Maven:
 ```

@@ -34,8 +34,10 @@ package org.rdfhdt.hdt.hdt;
 public class HDTVocabulary {
 	// Base
 	public static final String HDT_BASE = "<http://purl.org/hdt/hdt#";
+	public static final String HDT_BASE1 = "<http://purl.org/HDT/hdt#";
 	public static final String HDT_CONTAINER = HDT_BASE+"HDTv" + HDTVersion.HDT_VERSION+">";
-	 
+	public static final String HDT_CONTAINER1 = HDT_BASE1+"HDTv" + HDTVersion.HDT_VERSION+">";
+
 	public static final String HDT_HEADER = HDT_BASE+"header";
 	public static final String HDT_DICTIONARY_BASE = HDT_BASE+"dictionary";
 	public static final String HDT_DICTIONARY = HDT_DICTIONARY_BASE+">";

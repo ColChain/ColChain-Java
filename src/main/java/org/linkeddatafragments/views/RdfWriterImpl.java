@@ -3,8 +3,8 @@ package org.linkeddatafragments.views;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.jena.query.ARQ;
 import org.apache.jena.rdf.model.Model;

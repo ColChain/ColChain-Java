@@ -204,9 +204,9 @@ body {
     border:0;
 }
 
-.editor .time input[type=date],
-.editor-query .time input[type=date] {
-    width: 110px;
+.editor .time input[type=datetime-local],
+.editor-query .time input[type=datetime-local] {
+    width: 155px;
     height: 47px;
     background-color: #252956;
     font-size: small;
@@ -333,21 +333,126 @@ body {
     border-bottom-left-radius: 5px;
 }
 
+.contbox #configfile,
+.contbox #statefile {
+    background: #161a42;
+    border:none;
+    width: 15%;
+    border-radius: 5px;
+    color: #e4e6f7;
+    font-weight: bold;
+}
+
+.card-content #hdtfile {
+    background: #161a42;
+    border:none;
+    width: 100%;
+    border-radius: 5px;
+    color: #e4e6f7;
+    font-weight: bold;
+}
+
+.contbox #configfile::file-selector-button,
+.contbox #statefile::file-selector-button,
+.card-content #hdtfile::file-selector-button {
+    background: #45496d;
+    border:none;
+    padding: 15px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    color: #e4e6f7;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.contbox #configfile::file-selector-button:hover,
+.contbox #statefile::file-selector-button:hover,
+.card-content #hdtfile::file-selector-button:hover {
+    background: rgb(215,129,106);
+    background: linear-gradient(90deg, rgba(215,129,106,1) 0%, rgba(189,79,108,1) 100%);
+}
+
+.drop-container {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px dashed #2c2a6f;
+    color: #2c2a6f;
+    cursor: pointer;
+    transition: background .2s ease-in-out, border .2s ease-in-out;
+}
+
+.card-content .drop-container {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 285px;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px dashed #2c2a6f;
+    color: #2c2a6f;
+    cursor: pointer;
+    transition: background .2s ease-in-out, border .2s ease-in-out;
+}
+
+.drop-container:hover {
+    background: #eee;
+    border-color: #2c2a6f;
+}
+
+.drop-container:hover .drop-title {
+    color: #2c2a6f;
+}
+
+.drop-title {
+    color: #2c2a6f;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    transition: color .2s ease-in-out;
+}
+
+.drop-title-hdt {
+    color: #2c2a6f;
+    font-size: 20px;
+    text-align: center;
+    transition: color .2s ease-in-out;
+}
+
+.drop-container.drag-active {
+    background: #eee;
+    border-color: #2c2a6f;
+}
+
+.drop-container.drag-active .drop-title {
+    color: #2c2a6f;
+}
+
 .contbox #submit {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top:15px;
     background-color: #45496d;
     border:none;
     padding: 8px;
     padding-top: 15px;
     padding-bottom: 15px;
-    width: 172px;
+    width: calc(100% - 90% - 30px);
     color: #e4e6f7;
     font-weight: bold;
-    margin: 0;
     cursor: pointer;
     position: relative;
     right: 6px;
-    border-top-right-radius: 5px;
-    border-bottom-right-radius: 5px;
+    border-radius: 5px;
 }
 
 .contbox #submit:hover {
@@ -397,7 +502,7 @@ body {
     padding: 8px;
     padding-top: 15px;
     padding-bottom: 15px;
-    width: 70%;
+    width: 65%;
     color: #f1e8ee;
     font-weight: bold;
     margin: 0;
@@ -406,13 +511,13 @@ body {
 }
 
 .wrapper-box .statbox-right #submit,
-.card-wrapper .community-card .card-content #submit{
+.card-wrapper .community-card .card-content #submit {
     background-color: #45496d;
     border:none;
     padding: 8px;
     padding-top: 15px;
     padding-bottom: 15px;
-    width: 65px;
+    width: calc(100% - 65% - 30px);
     color: #e4e6f7;
     font-weight: bold;
     margin: 0;
@@ -421,6 +526,22 @@ body {
     right: 6px;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
+}
+
+.card-wrapper .community-card .card-content #submithdt {
+    background-color: #45496d;
+    border:none;
+    padding: 8px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    width: 35%;
+    color: #e4e6f7;
+    font-weight: bold;
+    margin: 0;
+    cursor: pointer;
+    position: relative;
+    right: 6px;
+    border-radius: 5px;
 }
 
 .wrapper-box .statbox-right #submit:hover,

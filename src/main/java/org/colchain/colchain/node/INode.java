@@ -1,5 +1,6 @@
 package org.colchain.colchain.node;
 
+import org.colchain.index.graph.IGraph;
 import org.colchain.index.index.IIndex;
 import org.colchain.index.util.Tuple;
 import org.colchain.colchain.community.Community;
@@ -96,4 +97,8 @@ public interface INode {
     String getAddressPath();
 
     void addPending(Map<String, Tuple<ITransaction, Set<String>>> pending);
+
+    int getNumRelevantNodes(Set<IGraph> fragments);
+
+    CommunityMember getAsCommunityMember();
 }

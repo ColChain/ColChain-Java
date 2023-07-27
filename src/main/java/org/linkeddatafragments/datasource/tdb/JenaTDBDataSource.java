@@ -51,6 +51,11 @@ public class JenaTDBDataSource extends DataSourceBase {
     }
 
     @Override
+    public void reload() {
+
+    }
+
+    @Override
     public int numTriples() {
         return 0;
     }

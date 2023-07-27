@@ -22,16 +22,42 @@
 
     <div class="community-card">
         <div class="card-content">
-            <br/><br/><br/><br/><br/><br/>
-            Specify data file to <b>upload</b> (.hdt):<br/><br/>
-            <form action="upload">
-                <input type="hidden" id="community" name="community" value="${community.getId()}">
-                <input type="text" id="path" name="path" placeholder="path/to/file.hdt">
-                <input type="submit" id="submit" value="Upload">
+            <form action="upload" method="post" enctype="multipart/form-data" id="hdtform">
+                <label for="hdtfile" class="drop-container" id="hdtdrop">
+                    <input type="hidden" id="community" name="community" value="${community.getId()}">
+                    <br/><span class="drop-title-hdt">Drop HDT files here to <b>upload</b> a dataset</span><br/>
+                    <i>or</i><br/><br/>
+                    <input type="file" id="hdtfile" name="hdtfile" required><br/><input type="submit" id="submithdt" value="Submit"><br/>
+                </label>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    const hdtDropContainer = document.getElementById("hdtdrop")
+    const hdtFileInput = document.getElementById("hdtfile")
+
+    hdtDropContainer.addEventListener("dragover", (e) => {
+        // prevent default to allow drop
+        e.preventDefault()
+    }, false)
+
+    hdtDropContainer.addEventListener("dragenter", () => {
+        hdtDropContainer.classList.add("drag-active")
+    })
+
+    hdtDropContainer.addEventListener("dragleave", () => {
+        hdtDropContainer.classList.remove("drag-active")
+    })
+
+    hdtDropContainer.addEventListener("drop", (e) => {
+        e.preventDefault()
+        hdtDropContainer.classList.remove("drag-active")
+        hdtFileInput.files = e.dataTransfer.files
+    })
+
+</script>
 
 <script>
     <#list fragments as fragment>

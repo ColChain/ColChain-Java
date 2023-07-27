@@ -11,7 +11,10 @@ public class ColchainTurtleEventHandler implements TurtleEventHandler {
     private List<Triple> triples = new ArrayList<>();
     private Set<Triple> processedTriples = new HashSet<>();
     private String nextPageUrl = "";
+    private int numResults = 0;
 
+    private static final int HYDRA_TOTALITEMS_HASH =
+            new String("http://www.w3.org/ns/hydra/core#totalItems").hashCode();
     private static final int HYDRA_NEXTPAGE_HASH =
             new String("http://www.w3.org/ns/hydra/core#nextPage").hashCode();
     private static final int DATASET_HASH = new String("http://rdfs.org/ns/void#Dataset").hashCode();
@@ -23,10 +26,10 @@ public class ColchainTurtleEventHandler implements TurtleEventHandler {
 
     @Override
     public void triple(int i, int i1, Triple triple) {
-        if(processedTriples.contains(triple)) return;
+        if (processedTriples.contains(triple)) return;
         processedTriples.add(triple);
 
-        if(isTripleValid(triple))
+        if (isTripleValid(triple))
             triples.add(triple);
     }
 
@@ -42,10 +45,17 @@ public class ColchainTurtleEventHandler implements TurtleEventHandler {
         return triples;
     }
 
+    public int getNumResults() {
+        return numResults;
+    }
+
     private boolean isTripleValid(Triple triple) {
-        if(triple.getSubject().isURI() && triple.getSubject().getURI().equals(fragmentUrl)) {
+        if (triple.getSubject().isURI() && triple.getSubject().getURI().equals(fragmentUrl)) {
             if (triple.getPredicate().getURI().hashCode() == HYDRA_NEXTPAGE_HASH) {
                 nextPageUrl = triple.getObject().getURI();
+            }
+            if (triple.getPredicate().getURI().hashCode() == HYDRA_TOTALITEMS_HASH) {
+                numResults = Integer.parseInt(triple.getObject().getLiteralValue().toString());
             }
             return false;
         } else if (triple.getPredicate().getURI().contains("hydra/")

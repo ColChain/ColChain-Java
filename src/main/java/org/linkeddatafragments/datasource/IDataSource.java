@@ -62,6 +62,8 @@ public interface IDataSource extends Closeable {
 
     int numObjects();
 
+    void reload();
+
     public enum ProcessorType {
         TPF, BRTPF, SPF
     }
