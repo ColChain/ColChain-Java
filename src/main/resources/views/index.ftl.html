@@ -18,13 +18,13 @@
         <b>Smallest community:</b> ${smallest}<br/><br/>
         <b>Most fragments:</b> ${most}<br/>
         <b>Least fragments:</b> ${least}<br/><br/><br/>
-        <form action="api/save">
+        <form action="/api/save">
           <input type="text" id="filename" name="filename" placeholder="Filename">
           <input type="submit" id="submit" value="Save">
         </form>
     </div>
     <div class="editor">
-        <form action="api/sparql" id="queryform">
+        <form action="/api/sparql" id="queryform">
             <div class="titlebar">
                 SPARQL
                 <div class="time">
@@ -243,21 +243,21 @@ SELECT ?a ?b ?c WHERE {
     <div class="community-card">
         <div class="card-content">
             <b>Search</b> for fragment by predicate:<br/><br/>
-            <form action="api/community">
+            <form action="/api/community">
                 <input type="hidden" name="mode" value="predicate">
                 <input type="text" id="address" name="predicate" placeholder="Predicate (URI)">
                 <input type="submit" id="submit" value="Search">
             </form>
             <br/><br/><br/>
             Create a <b>new</b> community:<br/><br/>
-            <form action="api/community">
+            <form action="/api/community">
                 <input type="hidden" id="mode" name="mode" value="create">
                 <input type="text" id="name" name="name" placeholder="Community name">
                 <input type="submit" id="submit" value="Create">
             </form><br/><br/><br/>
 
             Or, search for <b>existing</b> communities:<br/><br/>
-            <form action="api/community">
+            <form action="/api/community">
                 <input type="hidden" id="mode" name="mode" value="search">
                 <input type="text" id="address" name="address" placeholder="Address (leave blank to search from neighbors)">
                 <input type="submit" id="submit" value="Search">
@@ -272,12 +272,12 @@ SELECT ?a ?b ?c WHERE {
         <b>Id:</b> ${com.getId()}<br/>
         <b>Fragments:</b> ${com.getNumFragments()}<br/><br/>
 
-        <form action="api/community" id="leave${com.getId()}" method="get">
+        <form action="/api/community" id="leave${com.getId()}" method="get">
           <input type="hidden" id="mode" name="mode" value="leave">
           <input type="hidden" id="id" name="id" value="${com.getId()}">
           <input type="submit" id="leave" value="Leave">
         </form>
-        <form action="api/community" id="details${com.getId()}" method="get">
+        <form action="/api/community" id="details${com.getId()}" method="get">
             <input type="hidden" id="mode" name="mode" value="details">
             <input type="hidden" id="id" name="id" value="${com.getId()}">
             <input type="submit" id="details" value="Details">
@@ -292,7 +292,7 @@ SELECT ?a ?b ?c WHERE {
         <b>Id:</b> ${com.getId()}<br/>
         <b>Fragments:</b> ${com.getNumFragments()}<br/><br/>
 
-        <form action="api/community" id="leave${com.getId()}" method="get">
+        <form action="/api/community" id="leave${com.getId()}" method="get">
             <input type="hidden" id="mode" name="mode" value="leave">
             <input type="hidden" id="id" name="id" value="${com.getId()}">
             <input type="submit" style="border-radius:5px;" id="leave" value="Leave">

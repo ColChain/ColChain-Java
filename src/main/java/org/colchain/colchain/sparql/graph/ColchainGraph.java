@@ -102,7 +102,7 @@ public class ColchainGraph extends GraphBase {
                 queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(graph.getId() + ".hdt", timestamp))));
             } else if (FILE_CACHE.containsKey(new Tuple<>(graph.getId() + ".hdt", -1L))) {
                 queue.add(new LocalColchainIterator(jenaTriple, bindings, FILE_CACHE.get(new Tuple<>(graph.getId() + ".hdt", -1L))));
-            } */ else {
+            }*/ else {
                 String url = "";
                 try {
                     url = getFragmentUrl(jenaTriple, bindings, graph);
